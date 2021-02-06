@@ -5,88 +5,60 @@ using System.Text.RegularExpressions;
 
 namespace Assignment1
 {
-    public class CSVParser
+    /**
+     * CSVParser's responsibility is to lexicographically parse a given string, the full file
+     * contents, and filer out values for an entity based on the length of its columns whilst
+     * ignoring any new lines and escape characters contained within blocked ' " 's.
+     * 
+     * This class is generic taking any class that realises CSVEntity passing through a value
+     * and its related column number to the entity to deal with
+     * */
+    public class CSVParser<T> where T: class, ICSVEntity, new()
     {
-        public enum ParseState
-        {
-            SUCCESS, ERROR, PARSING
-        }
+        private List<T> _entities = new List<T>(); // list of entities
+        public List<T> EntityList { get { return _entities; } }
+        private List<char> _delims = new List<char>() { ',', '\"', '\n' }; // escape characters
+        private List<string> _columnTitles = new List<string>(); // column titles when header is in use
+        private T _currentEntity; // current entity being processed, new one created each entity finish
+        private readonly int NUM_COLUMNS; // how many columns dictating the length of an entity
+        private readonly int NUM_ENTITIES;
+        private string _text = ""; // the file contents to be parsed
 
-        public struct Token
-        {
-            public string Value;
-            public int StartIndex;
-            public int EndIndex;
-            public Token(string value, int start, int end)
-            {
-                this.Value = value;
-                this.StartIndex = start;
-                this.EndIndex = end;
-            }
-        }
-
-        public struct Entity
-        {
-            public int LineNumber;
-            public Dictionary<string, Token> Values;
-            public Entity(int lineNumber)
-            {
-                this.LineNumber = lineNumber;
-                this.Values = new Dictionary<string, Token>();
-            }
-        }
-
-        private ParseState? _state = null;
-        public ParseState State { get
-            {
-                if (_state == null)
-                    return ParseState.ERROR;
-                else
-                    return (ParseState)_state;
-            } }
-
-        private List<Entity> _entities = new List<Entity>();
-        public List<Entity> EntityList { get { return _entities; } }
-        private List<char> _delims = new List<char>() { ',', '\"', '\n' };
-        private List<string> _keys = new List<string>();
-        private Parser parser = new Parser();
-        private List<string> _columnTitles = new List<string>();
-        private Entity _currentEntity;
-        private readonly int NUM_COLUMNS;
-        private bool _hasHeader;
-        private string _text = "";
-        private int _columnProcessing = 0;
+        // following values are pointers to the positions being processed in file
+        private int _currentColumn = 0;
         private int _currentValueIndex = 0;
-        private int _currentEntityStartIndex = 0;
         private int _currentLine = 0;
         private int _totalLines = 0;
+        private int _currentEntityStartIndex = 0;
 
-        public CSVParser(string text, int numColumns = 8, bool hasHeader = true)
+        /**
+         * Basic constructor that  instantiates the headers, pointers, and local variables
+         * required to parse a csv file
+         * @args:
+         *      string text - the file contents to be parsed
+         *      int numColumns - the column count for an entity in the file
+         *      bool hasHeader - whether or not to ignore the first row
+         * */
+        public CSVParser(string text, int numEntities = 1000, int numColumns = 8, bool hasHeader = true)
         {
             if (numColumns == 0)
                 throw new Exception("Attempt to parse CSV without any column count");
             NUM_COLUMNS = numColumns;
-            _hasHeader = hasHeader;
+            NUM_ENTITIES = numEntities;
             _text = text.Replace("\r\n", "\n");
+            _currentEntityStartIndex = 0;
             if (hasHeader)
                 InitHeader();
-            else
-                InitBlankHeader();
+            _currentEntity = new T();
             ParseFile();
         }
 
-        private void InitBlankHeader()
-        {
-            for (int i = 0; i < NUM_COLUMNS; ++i)
-                _columnTitles.Add($"Key{i}");
-            _currentEntity = new Entity(0);
-        }
-
+        /**
+         * InitHeader's purpose is to parse the first line of a CSV file, extracting the
+         * name of the headers, and incrementing pointers
+         * */
         private void InitHeader()
         {
-            // will process first NUM_COLUMNS until new line character reached
-            // adding values to _columnTitles and incrementing _currentValueIndex & 
-            // _currentEntityStartIndex
             int valueCount = 0;
             int index = 0;
             do
@@ -105,22 +77,29 @@ namespace Assignment1
             _currentLine++;
             _totalLines++;
             _currentValueIndex = index;
-            _currentEntity = new Entity(_currentLine);
         }
 
+        /**
+         * ParseFile's responsibility is the main running loop of the program, calling
+         * ParseValue on any new column and incrementing the index
+         * */
         public void ParseFile()
         {
             int index = _currentValueIndex;
-
-            _state = ParseState.PARSING;
             while (index < _text.Length)
             {
                 index = ParseValue(index);
                 index++;
+                if (_entities.Count == NUM_ENTITIES)
+                    break;
             }
-            _state = ParseState.SUCCESS;
         }
 
+        /**
+         * ParseValue's purpose is to parse a column, whilst calling ParseQuoted helper
+         * function to ignore any values contained within double quotes, many times when
+         * quotes have nested quotes
+         * */
         public int ParseValue(int index)
         {
             _currentValueIndex = index;
@@ -136,6 +115,9 @@ namespace Assignment1
             return index;
         }
 
+        /**
+         * ParseQuoted purpose is to increment value pointers past a pair of quotes
+         * */
         public int ParseQuoted(int index)
         {
             index++;
@@ -144,59 +126,35 @@ namespace Assignment1
                 index++;
             }
             return index;
-/*            Stack<char> stack = new Stack<char>();
-            stack.Push(_delims[1]);
-            bool closing = false;
-            do
-            {
-                char ch = _text[index];
-                if(_text[index] == _delims[2])
-                {
-                    _totalLines++;
-                }
-                if (_text[++index] == _delims[1])
-                {
-                    if (!closing)
-                        stack.Push(_delims[1]);
-                    else
-                        stack.Pop();
-                }
-                else if (stack.Count > 0)
-                {
-                    closing = true;
-                }
-                else
-                {
-                    closing = false;
-                }
-                if (stack.Count == 0)
-                {
-                    closing = true;
-                }
-            } while (index < _text.Length - 1 && (!closing || stack.Count > 0));
-            string newText = _text.Substring(_currentValueIndex, index - _currentValueIndex);
-            return index;*/
         }
 
+        /**
+         * MakeValue's purpose is to extract a value from between the current pointers values
+         * and to inrement the column count, give the entity the value, and if the value being
+         * processed is the last value for the entity create a new instance
+         * */
         public void MakeValue(int index)
         {
-            string value = _text.Substring(_currentValueIndex, index - _currentValueIndex);
-            if (_columnProcessing == 0)
+            int startIndex = _currentValueIndex;
+            int endIndex = index;
+            if (_text[startIndex] == _delims[1] && _text[endIndex-1] == _delims[1])
             {
-                int year = int.Parse(value);
+                startIndex++;
+                endIndex--;
             }
-            Token token = new Token(value, _currentValueIndex, index);
-            _currentEntity.Values[_columnTitles[_columnProcessing]] = token;
+            string value = _text.Substring(startIndex, endIndex - startIndex);
+            _currentEntity.AddValue(_currentColumn, value, _currentLine);
             _currentValueIndex += index;
-            _columnProcessing++;
-            if (_columnProcessing == NUM_COLUMNS)
+            _currentColumn++;
+            if (_currentColumn == NUM_COLUMNS)
             {
+                _currentEntity.AddFullText(_text.Substring(_currentEntityStartIndex, index - _currentEntityStartIndex));
                 _totalLines++;
                 _currentLine = _totalLines;
                 _currentEntityStartIndex = index + 1;
-                _columnProcessing = 0;
+                _currentColumn = 0;
                 _entities.Add(_currentEntity);
-                _currentEntity = new Entity(_currentLine);
+                _currentEntity = new T();
             }
         }
 

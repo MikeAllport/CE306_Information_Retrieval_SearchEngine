@@ -14,18 +14,34 @@ namespace Assignment1
         public DataMunger(string filename)
         {
             this._filename = filename;
-            ProcessDocument();
         }
 
-        private void ProcessDocument()
+        public List<MovieIndex> GetMovieIndexes()
         {
+            List<MovieIndex> indexList;
             using (StreamReader reader = File.OpenText(_filename))
             {
 
                 string line = reader.ReadToEnd();
-                CSVParser parser = new CSVParser(line);
+                CSVParser<MovieIndex> parser = new CSVParser<MovieIndex>(line);
+                indexList = parser.EntityList;
                 int x = 1;
             }
+            return indexList;
+        }
+
+        public List<FullTextIndexer> GetFullTextIndexes()
+        {
+            List<FullTextIndexer> indexList;
+            using (StreamReader reader = File.OpenText(_filename))
+            {
+
+                string line = reader.ReadToEnd();
+                CSVParser<FullTextIndexer> parser = new CSVParser<FullTextIndexer>(line);
+                indexList = parser.EntityList;
+                int x = 1;
+            }
+            return indexList;
         }
     }
 }
