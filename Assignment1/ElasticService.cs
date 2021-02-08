@@ -7,7 +7,6 @@ using System.Threading.Tasks;
 
 namespace Assignment1
 {
-    ;
     /// <summary>
     /// ElasticService's purpose is to handle all communication to an open database connection.
     /// This class is generic, allowing for this to interface with and obtain
@@ -36,6 +35,7 @@ namespace Assignment1
             settings.ThrowExceptions(true);
             settings.PrettyJson(true);
             client = new ElasticClient(settings);
+            // TODO: insert try catch for Elasticsearch.Net.ElasticsearchClientException
             if (!client.Indices.Exists(t.GetIndexTitle()).Exists)
             {
                 t.CreateIndex(client);

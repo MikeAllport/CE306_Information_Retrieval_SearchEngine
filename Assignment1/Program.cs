@@ -12,12 +12,12 @@ namespace Assignment1
         ElasticClient client;
         static void Main(string[] args)
         {
-            ElasticService<FullTextIndexer> service = new ElasticService<FullTextIndexer>();
-            FullTextIndexer.service = service;
+            ElasticService<MovieIndexService> service = new ElasticService<MovieIndexService>();
+            MovieIndexService.service = service;
             DataMunger munger = new DataMunger(DATA_ABS_PATH);
-            munger.GetFullTextIndexes();
+            munger.GetMovieIndexes();
             service.AwaitASync();
-            FullTextIndexer ind = new FullTextIndexer();
+            MovieIndexService ind = new MovieIndexService();
         }
     }
 }

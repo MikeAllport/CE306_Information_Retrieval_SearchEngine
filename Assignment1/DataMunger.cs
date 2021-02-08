@@ -16,28 +16,14 @@ namespace Assignment1
             this._filename = filename;
         }
 
-        public List<MovieIndex> GetMovieIndexes()
+        public List<MovieIndexService> GetMovieIndexes()
         {
-            List<MovieIndex> indexList;
+            List<MovieIndexService> indexList;
             using (StreamReader reader = File.OpenText(_filename))
             {
 
                 string line = reader.ReadToEnd();
-                CSVParser<MovieIndex> parser = new CSVParser<MovieIndex>(line);
-                indexList = parser.EntityList;
-                int x = 1;
-            }
-            return indexList;
-        }
-
-        public List<FullTextIndexer> GetFullTextIndexes()
-        {
-            List<FullTextIndexer> indexList;
-            using (StreamReader reader = File.OpenText(_filename))
-            {
-
-                string line = reader.ReadToEnd();
-                CSVParser<FullTextIndexer> parser = new CSVParser<FullTextIndexer>(line);
+                CSVParser<MovieIndexService> parser = new CSVParser<MovieIndexService>(line);
                 indexList = parser.EntityList;
                 int x = 1;
             }
