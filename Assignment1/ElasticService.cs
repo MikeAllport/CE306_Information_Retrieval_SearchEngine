@@ -4,6 +4,10 @@ using System.Text;
 using Elasticsearch;
 using Nest;
 using System.Threading.Tasks;
+using System.Net.Http;
+using System.Net;
+using System.IO;
+using System.Threading;
 
 namespace Assignment1
 {
@@ -17,47 +21,79 @@ namespace Assignment1
     /// objects to the database
     /// </summary>
     /// <typeparam name="T"></typeparam>
-    public class ElasticService<T> where T: class, IIndexedDataService, new()
+    public class ElasticService<T> where T: class, IIndexableDB
     {
         private readonly Uri URI = new Uri("http://localhost:9200/"); // ElasticSearch uri
         public  ElasticClient client; // database connection
         // a list used to allow for a-synchronous data insertions
         private List<Task<IndexResponse>> _asyncAwaitSyncList = new List<Task<IndexResponse>>();
+        private T _indexService;
 
         /// <summary>
         /// Establishes the connection to the datase and ensures index has been created
         /// </summary>
-        public ElasticService()
+        public ElasticService(T indexService)
         {
-            T t = new T();
+            this._indexService = indexService;
             var settings = new ConnectionSettings(URI);
-            settings.DefaultIndex(t.GetIndexTitle());
+            settings.DefaultIndex(indexService.GetIndexTitle());
             settings.ThrowExceptions(true);
             settings.PrettyJson(true);
             client = new ElasticClient(settings);
             // TODO: insert try catch for Elasticsearch.Net.ElasticsearchClientException
-            if (!client.Indices.Exists(t.GetIndexTitle()).Exists)
+            try
             {
-                t.CreateIndex(client);
+                if (client.Indices.Exists(indexService.GetIndexTitle()).Exists)
+                {
+                    client.Indices.Delete(indexService.GetIndexTitle());
+                }
+                indexService.CreateIndex(client);
+            } catch (Elasticsearch.Net.ElasticsearchClientException)
+            {
+                throw new Exception($"PerferomIndexing::{this.GetType().Name} Could not establish database connection");
             }
+        }
+
+        public string DescribeIndices()
+        {
+            return BasicWebRequest("_cat/indices?v");
+        }
+
+        public IReadOnlyCollection<MovieIndex> GetFullMatches(int num)
+        {
+            var response = client.Search<MovieIndex>(s => s
+                .From(0)
+                .Size(num)
+                .MatchAll()
+            );
+            return response.Documents;
+        }
+
+        private string BasicWebRequest(string request)
+        {
+            WebRequest myReq = WebRequest.Create(URI.ToString() + request);
+            WebResponse wr = myReq.GetResponse();
+            Stream receiveStream = wr.GetResponseStream();
+            StreamReader reader = new StreamReader(receiveStream, Encoding.UTF8);
+            return reader.ReadToEnd();
         }
 
         /// <summary>
         /// Inserts document to database/elasticsearch
         /// </summary>
         /// <param name="doc">Generic class instance to be inserted to database</param>
-        public void IndexDocument(T doc)
+        public void IndexDocument(object doc)
         {
-            IndexResponse response = client.IndexDocument<T>(doc);
+            IndexResponse response = client.IndexDocument(doc);
         }
 
         /// <summary>
         /// Inserts document asynchronously
         /// </summary>
         /// <param name="doc">Generic class instance to be inserted to database</param>
-        public async void IndexASync(T doc)
+        public async void IndexASync(object doc)
         {
-            Task<IndexResponse> task = client.IndexDocumentAsync<T>(doc);
+            Task<IndexResponse> task = client.IndexDocumentAsync(doc);
             _asyncAwaitSyncList.Add(task);
             await task;
         }
@@ -70,8 +106,16 @@ namespace Assignment1
         {
             foreach (var task in _asyncAwaitSyncList)
             {
-                var response = task.GetAwaiter().GetResult();
+                task.Wait();
+                do
+                {
+                    var response = task.GetAwaiter().GetResult();
+                    Thread.Sleep(5);
+                } while (!task.GetAwaiter().IsCompleted);
+                task.GetAwaiter().GetResult();
+                task.Dispose();
             }
+            _asyncAwaitSyncList.Clear();
         }
     }
 }

@@ -6,11 +6,11 @@ using Nest;
 namespace Assignment1
 {
     /// <summary>
-    /// IIndexedDataService's purpose is such that the ElasticService can interface
+    /// IIndexableDB's purpose is such that the ElasticService can interface
     /// with seperate index classes to create indexes and send correctly formatted
     /// indexes to the database
     /// </summary>
-    public interface IIndexedDataService
+    public interface IIndexableDB
     {
         /// <summary>
         /// 
@@ -20,6 +20,11 @@ namespace Assignment1
         public void CreateIndex(ElasticClient client);
     }
 
+    public interface IDocumentable<T> where T: class, IIndexableDB
+    {
+        public void UploadData(ElasticService<T> service);
+    }
+
     /// <summary>
     /// ICSVEntity exists such that classes who realise it can add the value of a given column
     /// to its own data fields
@@ -27,6 +32,5 @@ namespace Assignment1
     public interface ICSVEntity
     {
         public void AddValue(int column, string data, int lineNumberInFile);
-        public void AddFullText(string text);
     }
 }

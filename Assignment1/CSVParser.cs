@@ -17,12 +17,11 @@ namespace Assignment1
     {
         private List<T> _entities = new List<T>(); // list of entities
         public List<T> EntityList { get { return _entities; } }
-        private List<char> _delims = new List<char>() { ',', '\"', '\n' }; // escape characters
-        private List<string> _columnTitles = new List<string>(); // column titles when header is in use
-        private T _currentEntity; // current entity being processed, new one created each entity finish
-        private readonly int NUM_COLUMNS; // how many columns dictating the length of an entity
-        private readonly int NUM_ENTITIES;
-        private string _text = ""; // the file contents to be parsed
+        private List<char> _delimiters = new List<char>() { ',', '\"', '\n' }; 
+        private List<string> _columnTitles = new List<string>();
+        private T _currentEntity; 
+        private readonly int NUM_COLUMNS; 
+        private string _text = ""; 
 
         // following values are pointers to the positions being processed in file
         private int _currentColumn = 0;
@@ -39,12 +38,11 @@ namespace Assignment1
          *      int numColumns - the column count for an entity in the file
          *      bool hasHeader - whether or not to ignore the first row
          * */
-        public CSVParser(string text, int numEntities = 1000, int numColumns = 8, bool hasHeader = true)
+        public CSVParser(string text, int numColumns = 8, bool hasHeader = true)
         {
             if (numColumns == 0)
-                throw new Exception("Attempt to parse CSV without any column count");
+                throw new Exception($"PerferomIndexing::{this.GetType().Name} Attempt to parse CSV without any column count");
             NUM_COLUMNS = numColumns;
-            NUM_ENTITIES = numEntities;
             _text = text.Replace("\r\n", "\n");
             _currentEntityStartIndex = 0;
             if (hasHeader)
@@ -63,15 +61,15 @@ namespace Assignment1
             int index = 0;
             do
             {
-                if(_text[index] == _delims[0] || _text[index] == _delims[2])
+                if(_text[index] == _delimiters[0] || _text[index] == _delimiters[2])
                 {
                     _columnTitles.Add(_text.Substring(_currentValueIndex, index - _currentValueIndex));
                     valueCount++;
                     _currentValueIndex = index + 1;
                 }
-            } while (_text[index++] != _delims[2]);
+            } while (_text[index++] != _delimiters[2]);
             if (index == _text.Length || valueCount != NUM_COLUMNS)
-                throw new Exception("Error processing CSV with incorrect # columns in header or"
+                throw new Exception($"PerferomIndexing::{this.GetType().Name} Error processing CSV with incorrect # columns in header or"
                     + "empty CSV file past header");
             _currentEntityStartIndex = index;
             _currentLine++;
@@ -90,8 +88,6 @@ namespace Assignment1
             {
                 index = ParseValue(index);
                 index++;
-                if (_entities.Count == NUM_ENTITIES)
-                    break;
             }
         }
 
@@ -103,9 +99,9 @@ namespace Assignment1
         public int ParseValue(int index)
         {
             _currentValueIndex = index;
-            while(_text[index] != _delims[0] && _text[index] != _delims[2])
+            while(_text[index] != _delimiters[0] && _text[index] != _delimiters[2])
             {
-                if(_text[index] == _delims[1])
+                if(_text[index] == _delimiters[1])
                 {
                     index = ParseQuoted(index); 
                 }
@@ -121,7 +117,7 @@ namespace Assignment1
         public int ParseQuoted(int index)
         {
             index++;
-            while (_text[index] != _delims[1])
+            while (_text[index] != _delimiters[1])
             {
                 index++;
             }
@@ -137,7 +133,7 @@ namespace Assignment1
         {
             int startIndex = _currentValueIndex;
             int endIndex = index;
-            if (_text[startIndex] == _delims[1] && _text[endIndex-1] == _delims[1])
+            if (_text[startIndex] == _delimiters[1] && _text[endIndex-1] == _delimiters[1])
             {
                 startIndex++;
                 endIndex--;
@@ -148,7 +144,6 @@ namespace Assignment1
             _currentColumn++;
             if (_currentColumn == NUM_COLUMNS)
             {
-                _currentEntity.AddFullText(_text.Substring(_currentEntityStartIndex, index - _currentEntityStartIndex));
                 _totalLines++;
                 _currentLine = _totalLines;
                 _currentEntityStartIndex = index + 1;
