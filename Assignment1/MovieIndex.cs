@@ -26,6 +26,7 @@ namespace Assignment1
             GENRE_KEY = "Genre",
             WIKI_KEY = "Wiki",
             PLOT_KEY = "Plot";
+        public int Complexity = 0;
         [Number(Name = ID_KEY)]
         public int ID { get; set; } = -1;
         [Number(Name = RELEASEY_KEY)]
@@ -44,6 +45,11 @@ namespace Assignment1
         public string Wiki { get; set; } = "";
         [Text(Name = PLOT_KEY)]
         public string Plot { get; set; } = "";
+
+        public string GetFullText()
+        {
+            return $"{ReleaseYear} {Title} {Origin} {Director} {Cast} {Genre} {Wiki} {Plot}";
+        }
 
         /// <summary>
         /// this method requires no action, as the full text class is not
@@ -115,16 +121,13 @@ namespace Assignment1
         }
 
         /// <summary>
-        /// Overrides Comparable interface with comparison of other to this by date, meaning sorting
-        /// will be done highest to lowest instead of lowest to highest</summary>
-        /// <param name="other">Other MovieIndex object</param>
-        /// <returns>
-        /// Positive if other ReleaseYear > this release year
-        /// Negative if other Release Year < this release year
-        /// 0 if equal
-        /// </returns>
+        /// Makes sorting of MovieEndexes in descending order of complexity or release year
+        /// if complexisties equal
+        /// </summary>
         public int CompareTo([AllowNull] MovieIndex other)
         {
+            if (other.Complexity != this.Complexity)
+                return other.Complexity - this.Complexity;
             return other.ReleaseYear - this.ReleaseYear;
         }
 

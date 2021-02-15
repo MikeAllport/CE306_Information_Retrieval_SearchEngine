@@ -36,17 +36,6 @@ namespace Assignment1_unitTests
         }
 
         [TestMethod]
-        public void TestEntities()
-        {
-/*            string input = "on 27th November Michael Sanderson went holidaying with Dr. Layton in 2007 where they gained £31,000 from finding some bag and Angelina Jolie found"
-                + "Apple products which came from Japan, or was it America? Or Colchester... who knows. This was at 7pm";
-            ProcessingPipeline pipe = new ProcessingPipeline.Builder(input).
-                ExtractEntities().
-                Build();
-            int x = 1;*/
-        }
-
-        [TestMethod]
         public void TestRemovePunc()
         {
             string input = "i'll be there for you, maybe I won't, he'll do just fine";
@@ -66,6 +55,42 @@ namespace Assignment1_unitTests
             Regex pattern = new Regex("[A-Z]");
             var matches = from Match m in pattern.Matches(pipe.StringsInPipeline[0]) select m.Value;
             Assert.AreEqual(0, matches.Count());
+        }
+
+        [TestMethod]
+        public void TestTokenization()
+        {
+            string input = "- oh what a wonderful life it has been been, Dr. Emerates found out. Whilst we were away.";
+            ProcessingPipeline pipe = new ProcessingPipeline.Builder(input).
+                SplitSentences().
+                Tokenize().
+                Build();
+            Assert.AreEqual(21, pipe.Tokens.Count);
+            Assert.AreEqual(2, pipe.TokenWordCount["been"]);
+            Assert.AreEqual(2, pipe.TokenWordCount["."]);
+            Assert.AreEqual(1, pipe.TokenWordCount["-"]);
+        }
+
+        [TestMethod]
+        public void TestNGRAMS()
+        {
+            string input = "- oh what a wonderful life it has been been, Dr. Emerates found out. Whilst we were away.";
+            ProcessingPipeline pipe = new ProcessingPipeline.Builder(input).
+                Tokenize().
+                MakeNGrams(2).
+                Build();
+            Assert.AreEqual(20, pipe.NGrams.Count);
+            pipe = new ProcessingPipeline.Builder(input).
+                Tokenize().
+                MakeNGrams(3).
+                Build();
+            Assert.AreEqual(19, pipe.NGrams.Count);
+            input = "- oh - oh what a wonderful life it has been been, Dr. Emerates found out. Whilst we were away.";
+            pipe = new ProcessingPipeline.Builder(input).
+                Tokenize().
+                MakeNGrams(2).
+                Build();
+            Assert.AreEqual(2, pipe.TokenWordCount["-;;oh"]);
         }
     }
 }

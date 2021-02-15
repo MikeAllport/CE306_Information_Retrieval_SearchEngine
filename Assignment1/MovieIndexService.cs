@@ -6,9 +6,11 @@ using Nest;
 namespace Assignment1
 {
     /// <summary>
-    /// MovieIndexService's purpose is to to generate a mapping of MovieIndex documents to a generated
+    /// MovieIndexService's purpose is to generate a mapping of MovieIndex documents to a generated
     /// ID, and to contain member functions enabling uploading the corpus's documents
     /// to ElasticSearch though the realised interface IDocumentable.
+    /// 
+    /// This class is also responsible for how many documents get indexed, by tracking ids issued
     /// 
     /// MovieIndexService also contains member functions required to create an index on the elasticsearch 
     /// database by realising IIndexableDB interface
@@ -21,6 +23,14 @@ namespace Assignment1
         private int ID { get; set; } = 1;
         public int NumDocuments { get; set; } = -1;
 
+        /// <summary>
+        /// AddDocuments purpose is to attain the first 1000 documents, which has been sorted by
+        /// ReleaseYear
+        /// 
+        /// This is the main control method of how many documents get uploaded and indexed
+        /// by tracking the number of id's issued
+        /// </summary>
+        /// <param name="collection"></param>
         public void AddDocuments(IEnumerable<MovieIndex> collection)
         {
             foreach (MovieIndex document in collection)

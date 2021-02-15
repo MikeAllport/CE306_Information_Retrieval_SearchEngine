@@ -9,49 +9,71 @@ using System.Text.RegularExpressions;
 
 namespace Assignment1
 {
+    /// <summary>
+    /// ProcessingPipeline's purpose is to perform all of the operations required in tokenizing inlucing
+    /// sentence splitting, bullet point detencion, removing mid-word punctuation such as apostrophes  ,
+    /// normalizing the text to lowercase, tokenizing, and creating ngrams from tokens.
+    /// 
+    /// The whole process is controlled with a builder pattern, which a nested class
+    /// </summary>
     public class ProcessingPipeline
 
     {
+        /// <summary>
+        /// Pipes purpose is to enumerate all available steps in the pipeline process
+        /// </summary>
         public enum Pipes
         {
             SENTENCE_SPLIT,
             SPLIT_BULLETS,
-            EXTRACT_ENTITIES,
             REMOVE_PUNCT,
             NORMALIZE,
             TOKENIZE,
+            NGRAMS
         }
 
+        /*******************************************************************/
+        /*************      Pipeline members           *********************/
+        /*******************************************************************/
+
+        // member variables specific to each step, handy for debugging
         internal List<Pipes> _pipeList;
         public string OriginalText { get; }
-        public SortedSet<string> KeyWords { get; } = new SortedSet<string>();
-        public SortedSet<string> Phrases { get; } = new SortedSet<string>();
+        private List<string> _tokens = new List<string>();
+        public List<string> Tokens { get { return _tokens; } }
+        Dictionary<string, int> _tokenCount = new Dictionary<string, int>();
+        public Dictionary<string, int> TokenWordCount { get { return _tokenCount; } }
         private List<string> _sentences = new List<string>();
         public List<string> Sentences { get { return _sentences; } }
         private List<string> _bulletPoints = new List<string>();
         public List<string> BulletPoints { get { return _bulletPoints; } }
         private List<string> _stringsInPipeline = new List<string>();
         public List<string> StringsInPipeline { get { return _stringsInPipeline; } }
-        private Dictionary<string, SortedSet<string>> _entities = new Dictionary<string, SortedSet<string>>()
-        {
-            { "dates", new SortedSet<string>() },
-            { "persons", new SortedSet<string>() },
-            { "locations", new SortedSet<string>() },
-            { "moneys", new SortedSet<string>() },
-            { "organizations", new SortedSet<string>() },
-            { "times", new SortedSet<string>() }
-        };
-        public Dictionary<string, SortedSet<string>> Entities { get { return _entities; } }
+        private List<string> _nGrams = new List<string>();
+        public List<string> NGrams { get { return _nGrams; } }
+        internal int _ngramNum;
+
+        // some constants used for the OpenNLP model directories and ngram delimiter
+        private static readonly string NGRAM_DELIM = ";;";
+
         private static readonly string MODEL_PATH = Assignment1.Program.SOLUTION_DIR +
             "libs/OpenNlp/Resources/Models/";
         private static readonly string SENTENCE_MODEL = MODEL_PATH + "EnglishSD.nbin";
-        private static readonly string ENTITY_PATH = MODEL_PATH + "NameFind/";
+        private static readonly string REGULAR_TOKENIZER = MODEL_PATH + "EnglishTok.nbin";
 
-        public ProcessingPipeline(string inputText)
+        /// <summary>
+        /// Private internal constructor, so this cannot be used without a builder
+        /// </summary>
+        /// <param name="inputText">The text to be processed</param>
+        internal ProcessingPipeline(string inputText)
         {
             OriginalText = inputText;
         }
 
+        /// <summary>
+        /// Loops through the constructed pipeline and performs the associated
+        /// operations built with the builder
+        /// </summary>
         internal void Run()
         {
             _stringsInPipeline = new List<string>() { OriginalText };
@@ -65,9 +87,6 @@ namespace Assignment1
                     case SPLIT_BULLETS:
                         SplitBulletPoints();
                         break;
-                    case EXTRACT_ENTITIES:
-                        ExtractEntities();
-                        break;
                     case REMOVE_PUNCT:
                         RemovePunc();
                         break;
@@ -75,11 +94,18 @@ namespace Assignment1
                         Normalize();
                         break;
                     case TOKENIZE:
+                        Tokenize();
+                        break;
+                    case NGRAMS:
+                        MakeNGrams();
                         break;
                 }
             }
         }
 
+        /// <summary>
+        /// Splits the pipelines input text into sentences through use of OpenNLP model
+        /// </summary>
         private void SplitSentences()
         {
             List<string> output = new List<string>();
@@ -92,6 +118,12 @@ namespace Assignment1
             _stringsInPipeline = output;
         }
 
+        /// <summary>
+        /// Splits all bullet points strings in the pipeline list with regex pattern matching:
+        /// Number. bullets
+        /// Numer- bullets
+        /// Ascii(\u2022) bullets (the round ones)
+        /// </summary>
         private void SplitBulletPoints()
         {
             List<string> output = new List<string>();
@@ -105,31 +137,9 @@ namespace Assignment1
             _stringsInPipeline = output;
         }
 
-        private void ExtractEntities()
-        {
-            List<string> output = new List<string>();
-            var nameFinder = new OpenNLP.Tools.NameFind.EnglishNameFinder(ENTITY_PATH);
-            // specify which types of entities you want to detect
-            var models = new string[]{ "date", "location", "money", "organization", "percentage", "person", "time" };
-            foreach (string input in _stringsInPipeline)
-            {
-                List<string> matches = new List<string>();
-                var hits = nameFinder.GetNames(models, input);
-                Regex pattern = new Regex("(?<=<date>).*?(?=</date>)");
-                _entities["dates"].UnionWith(from Match m in pattern.Matches(hits) select m.Value);
-                pattern = new Regex("(?<=<person>).*?(?=</person>)");
-                _entities["persons"].UnionWith(from Match m in pattern.Matches(hits) select m.Value);
-                pattern = new Regex("(?<=<location>).*?(?=</location>)");
-                _entities["locations"].UnionWith(from Match m in pattern.Matches(hits) select m.Value);
-                pattern = new Regex("(?<=<organization>).*?(?=</organization>)");
-                _entities["organizations"].UnionWith(from Match m in pattern.Matches(hits) select m.Value);
-                pattern = new Regex("(?<=<moneys>).*?(?=</moneys>)");
-                _entities["moneys"].UnionWith(from Match m in pattern.Matches(hits) select m.Value);
-                pattern = new Regex("(?<=<times>).*?(?=</times>)");
-                _entities["times"].UnionWith(from Match m in pattern.Matches(hits) select m.Value);
-            }
-        }
-
+        /// <summary>
+        /// Strips any apostrophies from the strings in the pipeline
+        /// </summary>
         private void RemovePunc()
         {
             for (int i = 0; i < _stringsInPipeline.Count; ++i)
@@ -139,6 +149,9 @@ namespace Assignment1
             }
         }
 
+        /// <summary>
+        /// Converts all strings in the pipeline to lowercase, Normalization
+        /// </summary>
         private void Normalize()
         {
             for (int i = 0; i < _stringsInPipeline.Count; ++i)
@@ -147,21 +160,123 @@ namespace Assignment1
             }
         }
 
+        /// <summary>
+        /// Generates a list of tokens from all strings in the pipeline with OpenNLP's tokenizer and 
+        /// places wordcount in dictionary
+        /// </summary>
+        private void Tokenize()
+        {
+            var tokenizer = new OpenNLP.Tools.Tokenize.EnglishMaximumEntropyTokenizer(REGULAR_TOKENIZER);
+            foreach (string value in _stringsInPipeline)
+            {
+                var s = tokenizer.Tokenize(value);
+                foreach (string word in from str in tokenizer.Tokenize(value) select str)
+                    _tokens.Add(word);
+            }
+            foreach (string token in _tokens)
+            {
+                if (_tokenCount.ContainsKey(token))
+                    _tokenCount[token]++;
+                else
+                    _tokenCount[token] = 1;
+            }
+        }
+
+        /// <summary>
+        /// Creates NGrams of length _ngramNum 
+        /// </summary>
+        private void MakeNGrams()
+        {
+            for(int ngramFirstWord = 0; ngramFirstWord + _ngramNum <= _tokens.Count; ngramFirstWord++)
+            {
+                string ngram = "";
+                for (int nextNgramWord = ngramFirstWord; nextNgramWord < _ngramNum + ngramFirstWord; nextNgramWord++)
+                {
+                    ngram += _tokens[nextNgramWord] + NGRAM_DELIM;
+                }
+                ngram = ngram.Substring(0, ngram.Length - NGRAM_DELIM.Length);
+                _nGrams.Add(ngram);
+            }
+            CountNGrams();
+        }
+
+        /// <summary>
+        /// Counts the frequency of NGrams seen in the full text
+        /// </summary>
+        private void CountNGrams()
+        {
+            string fullText = OriginalText.ToLower();
+            Regex pattern = new Regex("['`]");
+            fullText = pattern.Replace(fullText, "");
+            foreach (var ngrams in _nGrams)
+            {
+                var seperateWords = ngrams.Split(NGRAM_DELIM);
+                string patternString = "";
+                string spaceDetect = "[ ]{0,1}";
+                for (int i = 0; i < seperateWords.Length; i++)
+                {
+                    patternString += seperateWords[i] + spaceDetect;
+                }
+                pattern = new Regex(patternString);
+                int count = (from Match m in pattern.Matches(fullText) select m.Value).Count();
+                if (_tokenCount.ContainsKey(ngrams))
+                    _tokenCount[ngrams]++;
+                else
+                    _tokenCount[ngrams] = 1;
+            }
+        }
+
+        /// <summary>
+        /// Utility function to see in a string is blank
+        /// </summary>
+        /// <param name="input"></param>
+        /// <returns></returns>
         private bool IsBlank(string input)
         {
             return input == "" || input == "\n";
         }
 
+        /*******************************************************************/
+        /*************      Builder           ******************************/
+        /*******************************************************************/
 
+        /// <summary>
+        /// Builders purpose is to generate a pipeline and contruct/run the pipeline through its .Build function
+        /// All over functions simply add their respective enumeration to the pipelist which is then input into
+        /// the generated ProcessingPipeline object returned in the .Build function
+        /// </summary>
         public class Builder
         {
             List<Pipes> _pipeList = new List<Pipes>();
             string _inputText;
+            int ngrams = 0;
 
+            /// <summary>
+            /// Constructor which takes the text to be processed as input
+            /// </summary>
+            /// <param name="inputText"></param>
             public Builder(string inputText)
             {
                 this._inputText = inputText;
             }
+
+            /// <summary>
+            /// Main build function, constructs a ProcessingPipeline, runs it, and returns it
+            /// (this is the last function called when building)
+            /// </summary>
+            /// <returns></returns>
+            public ProcessingPipeline Build()
+            {
+                ProcessingPipeline pipe = new ProcessingPipeline(_inputText);
+                pipe._pipeList = new List<Pipes>(_pipeList);
+                pipe._ngramNum = ngrams;
+                pipe.Run();
+                return pipe;
+            }
+
+            /// <summary>
+            /// All following functions simply add the enum to the pipeline list
+            /// </summary>
 
             public Builder SplitSentences()
             {
@@ -193,18 +308,11 @@ namespace Assignment1
                 return this;
             }
 
-            public Builder ExtractEntities()
+            public Builder MakeNGrams(int n)
             {
-                _pipeList.Add(EXTRACT_ENTITIES);
+                _pipeList.Add(NGRAMS);
+                ngrams = n;
                 return this;
-            }
-
-            public ProcessingPipeline Build()
-            {
-                ProcessingPipeline pipe = new ProcessingPipeline(_inputText);
-                pipe._pipeList = new List<Pipes>(_pipeList);
-                pipe.Run();
-                return pipe;
             }
         }
     }
