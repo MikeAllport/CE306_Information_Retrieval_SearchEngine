@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Text;
 using System.Linq;
 using static Assignment1.ProcessingPipeline.Pipes;
-using System.Linq;
 using OpenNLP;
 using System.Text.RegularExpressions;
 
@@ -28,6 +27,7 @@ namespace Assignment1
             SPLIT_BULLETS,
             REMOVE_PUNCT,
             NORMALIZE,
+            EXTRACT_ENTITIES,
             TOKENIZE,
             NGRAMS
         }
@@ -61,6 +61,7 @@ namespace Assignment1
             "libs/OpenNlp/Resources/Models/";
         private static readonly string SENTENCE_MODEL = MODEL_PATH + "EnglishSD.nbin";
         private static readonly string REGULAR_TOKENIZER = MODEL_PATH + "EnglishTok.nbin";
+        private static readonly string ENTITY_PATH = MODEL_PATH + "NameFind/";
 
         /// <summary>
         /// Private internal constructor, so this cannot be used without a builder
@@ -100,6 +101,9 @@ namespace Assignment1
                     case NGRAMS:
                         MakeNGrams();
                         break;
+                    case EXTRACT_ENTITIES:
+                        ExtractEntities();
+                        break;
                 }
             }
         }
@@ -131,7 +135,6 @@ namespace Assignment1
             foreach (string inputItem in _stringsInPipeline)
             {
                 Regex pattern = new Regex("([\u2022][^\u2022\n$]*)|([0-9].[^0-9\n$]*)|([0-9]-[^0-9\n$]*)");
-                var hits = pattern.Matches(inputItem).Where(match => !IsBlank(match.Value));
                 _bulletPoints = _bulletPoints.Union(from Match m in pattern.Matches(inputItem) select m.Value).ToList();
                 output = output.Union(pattern.Split(inputItem).Where(match => !IsBlank(match))).ToList();
             }
@@ -139,9 +142,7 @@ namespace Assignment1
         }
 
         /// <summary>
-        /// Strips any punctuation from the strings in the pipeline, replacing apostrophies with blank
-        /// characters so that words do loose meaning by seperating the endings during tokenization,
-        /// while other symbols are replaced with spaces
+        /// Strips any apostrophies from the strings in the pipeline
         /// </summary>
         private void RemovePunc()
         {
@@ -149,8 +150,6 @@ namespace Assignment1
             {
                 Regex pattern = new Regex("['`]");
                 _stringsInPipeline[i] = pattern.Replace(_stringsInPipeline[i], "");
-                pattern = new Regex("[.\\[\\]\\{\\}\\\"&\\(\\),]");
-                _stringsInPipeline[i] = pattern.Replace(_stringsInPipeline[i], " ");
             }
         }
 
@@ -162,6 +161,42 @@ namespace Assignment1
             for (int i = 0; i < _stringsInPipeline.Count; ++i)
             {
                 _stringsInPipeline[i] = _stringsInPipeline[i].ToLower();
+            }
+        }
+
+        private Dictionary<string, SortedSet<string>> _entities = new Dictionary<string, SortedSet<string>>()
+        {
+            { "dates", new SortedSet<string>() },
+            { "persons", new SortedSet<string>() },
+            { "locations", new SortedSet<string>() },
+            { "moneys", new SortedSet<string>() },
+            { "organizations", new SortedSet<string>() },
+            { "times", new SortedSet<string>() }
+        };
+        public Dictionary<string, SortedSet<string>> Entities { get { return _entities; } }
+
+        private void ExtractEntities()
+        {
+            List<string> output = new List<string>();
+            var nameFinder = new OpenNLP.Tools.NameFind.EnglishNameFinder(ENTITY_PATH);
+            // specify which types of entities you want to detect
+            var models = new string[] { "date", "location", "money", "organization", "percentage", "person", "time" };
+            foreach (string input in _stringsInPipeline)
+            {
+                List<string> matches = new List<string>();
+                var hits = nameFinder.GetNames(models, input);
+                Regex pattern = new Regex("(?<=<date>).*?(?=</date>)");
+                _entities["dates"].UnionWith(from Match m in pattern.Matches(hits) select m.Value);
+                pattern = new Regex("(?<=<person>).*?(?=</person>)");
+                _entities["persons"].UnionWith(from Match m in pattern.Matches(hits) select m.Value);
+                pattern = new Regex("(?<=<location>).*?(?=</location>)");
+                _entities["locations"].UnionWith(from Match m in pattern.Matches(hits) select m.Value);
+                pattern = new Regex("(?<=<organization>).*?(?=</organization>)");
+                _entities["organizations"].UnionWith(from Match m in pattern.Matches(hits) select m.Value);
+                pattern = new Regex("(?<=<moneys>).*?(?=</moneys>)");
+                _entities["moneys"].UnionWith(from Match m in pattern.Matches(hits) select m.Value);
+                pattern = new Regex("(?<=<times>).*?(?=</times>)");
+                _entities["times"].UnionWith(from Match m in pattern.Matches(hits) select m.Value);
             }
         }
 
@@ -215,7 +250,7 @@ namespace Assignment1
             fullText = pattern.Replace(fullText, "");
             foreach (var ngrams in _nGrams)
             {
-                var seperateWords = ngrams.Split(NGRAM_DELIM);
+                var seperateWords = ngrams.Split(NGRAM_DELIM.ToCharArray());
                 string patternString = "";
                 string spaceDetect = "[ ]{0,1}";
                 for (int i = 0; i < seperateWords.Length; i++)
@@ -304,6 +339,12 @@ namespace Assignment1
             public Builder Normalize()
             {
                 _pipeList.Add(NORMALIZE);
+                return this;
+            }
+            
+            public Builder ExtractEntities()
+            {
+                _pipeList.Add(EXTRACT_ENTITIES);
                 return this;
             }
 

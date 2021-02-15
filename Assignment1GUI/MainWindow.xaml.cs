@@ -10,6 +10,7 @@ using Microsoft.Win32;
 using Assignment1;
 using System.Text.RegularExpressions;
 using IGUIAdapter;
+using SimpleWPFChart;
 
 namespace Assignment1GUI
 {
@@ -20,8 +21,10 @@ namespace Assignment1GUI
     {
         private int _consoleRowCount = 0;
         private Program program;
+        Application ownerApp;
         public MainWindow()
         {
+
             InitializeComponent();
             program = new Program(this);
         }
@@ -58,11 +61,12 @@ namespace Assignment1GUI
             int rows = Regex.Matches(message, "\n").Count;
             if (rows == 0)
                 rows = 1;
-            row.MinHeight = rows * 20;
+            row.MinHeight = 20;
             MessageGrid.RowDefinitions.Add(row);
             MessageGrid.Children.Add(textToAdd);
             Grid.SetRow(textToAdd, _consoleRowCount++);
             consoleViewer.ScrollToBottom();
+
         }
 
         private static SolidColorBrush GetBrush(GUIColor? colGUI, SolidColorBrush defaultBrush)
@@ -83,6 +87,19 @@ namespace Assignment1GUI
                 brush = new SolidColorBrush(col);
             }
             return brush;
+        }
+
+
+        private void OnZipfAnalysis(object sender, RoutedEventArgs e)
+        {
+            program.RunZipfsSelectionAnalysis();
+        }
+
+        public void SetChart(Tuple<float[], float[], string> input)
+        {
+            SimpleWPFChart.MainWindow chart = new SimpleWPFChart.MainWindow(input.Item3);
+            chart.SetChart(input);
+            chart.Show();
         }
     }
 }

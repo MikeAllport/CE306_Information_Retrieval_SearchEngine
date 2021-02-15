@@ -2,20 +2,16 @@
 using System.IO;
 using Elasticsearch;
 using Nest;
-using System.Linq;
-using System.Collections.Generic;
-using System.Threading;
 
 namespace Assignment1
 {
     public class Program
     {
-        public static readonly string SOLUTION_DIR = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..\\..\\..\\..\\"));
+        public static readonly string SOLUTION_DIR = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..\\..\\..\\"));
         private static readonly string DATA_ABS_PATH = SOLUTION_DIR +"documents.csv";
         private static readonly int _numDocuments = 1000;
         private MovieIndexService _miService;
         private ElasticService<MovieIndexService> _esService;
-        private AnalyserEngine engine;
         private IGUIAdapter.Adapter gui;
         public static bool _running = true;
 
@@ -61,16 +57,6 @@ namespace Assignment1
             {
                 gui.AddConsoleMessage(e.Message, IGUIAdapter.GUIColor.ERROR_COLOR);
             }
-            engine = new AnalyserEngine(_miService.MovieIndexMap, gui);
-        }
-
-        public void RunZipfsSelectionAnalysis()
-        {
-            gui.SetChart(engine.GetZipfsNormStats());
-            gui.SetChart(engine.GetZipfsLogStats());
-            gui.SetChart(engine.SelectStopWordsStandardDev());
-            gui.SetChart(engine.SelectStopWordsMedianIQRange());
-            gui.SetChart(engine.SelectStopWordsLogMidPoint());
         }
 
         private static void AddDocuments(MovieIndexService miservice, string uri)

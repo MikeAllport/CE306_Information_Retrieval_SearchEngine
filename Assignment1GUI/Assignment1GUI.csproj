@@ -2,13 +2,16 @@
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <TargetFramework>net5.0-windows</TargetFramework>
     <UseWPF>true</UseWPF>
+    <Nullable>annotations</Nullable>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Assignment1\Assignment1Program.csproj" />
     <ProjectReference Include="..\IGUIMiddleMan\IGUIAdapter.csproj" />
+    <ProjectReference Include="..\SimpleGraph\SimpleGraph.csproj" />
+    <ProjectReference Include="..\SimpleWPFChart\SimpleWPFChart.csproj" />
   </ItemGroup>
 
 </Project>
