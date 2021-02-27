@@ -61,7 +61,7 @@ namespace Assignment1
             {
                 gui.AddConsoleMessage(e.Message, IGUIAdapter.GUIColor.ERROR_COLOR);
             }
-            engine = new AnalyserEngine(_miService.MovieIndexMap, gui);
+            engine = new AnalyserEngine(_miService.MovieIndexMap, gui, new AnalyserEngineSettings());
         }
 
         public void RunZipfsSelectionAnalysis()

@@ -70,27 +70,5 @@ namespace Assignment1_unitTests
             Assert.AreEqual(2, pipe.TokenWordCount["."]);
             Assert.AreEqual(1, pipe.TokenWordCount["-"]);
         }
-
-        [TestMethod]
-        public void TestNGRAMS()
-        {
-            string input = "- oh what a wonderful life it has been been, Dr. Emerates found out. Whilst we were away.";
-            ProcessingPipeline pipe = new ProcessingPipeline.Builder(input).
-                Tokenize().
-                MakeNGrams(2).
-                Build();
-            Assert.AreEqual(20, pipe.NGrams.Count);
-            pipe = new ProcessingPipeline.Builder(input).
-                Tokenize().
-                MakeNGrams(3).
-                Build();
-            Assert.AreEqual(19, pipe.NGrams.Count);
-            input = "- oh - oh what a wonderful life it has been been, Dr. Emerates found out. Whilst we were away.";
-            pipe = new ProcessingPipeline.Builder(input).
-                Tokenize().
-                MakeNGrams(2).
-                Build();
-            Assert.AreEqual(2, pipe.TokenWordCount["-;;oh"]);
-        }
     }
 }
