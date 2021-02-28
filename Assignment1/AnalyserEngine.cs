@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading;
 using static Assignment1.StopWordDetectionType;
 using Utils;
+using System.Collections;
 
 namespace Assignment1
 {
@@ -66,6 +67,7 @@ namespace Assignment1
                 CorpusBOW.AddTerms(pipeline.Tokens);
             }
             CorpusBOW.IndexWords();
+            _corpusBOW.AddNormalizedTermFreq();
         }
 
         /// <summary>
@@ -80,6 +82,7 @@ namespace Assignment1
                 pipe.Value.RemoveTokens(stopWords);
             }
             CorpusBOW.RemoveTerms(stopWords);
+            _corpusBOW.AddNormalizedTermFreq();
         }
 
         /// <summary>
@@ -110,15 +113,65 @@ namespace Assignment1
             return stopWords;
         }
 
-        private void GenerateNGrams()
+        public void GenerateStems()
         {
             _corpusBOW = new BagOfWords();
-            foreach (var pipeIDpair in IndexIDDict)
+            foreach (KeyValuePair<int, ProcessingPipeline> idPipePair in IndexIDDict)
             {
-                pipeIDpair.Value.NGramNum = settings.NGramNum;
-                pipeIDpair.Value.MakeNGrams();
-                CorpusBOW.AddTerms(pipeIDpair.Value.Tokens);
+                idPipePair.Value.Stem();
+                CorpusBOW.AddTerms(idPipePair.Value.Tokens);
             }
+            _corpusBOW.AddNormalizedTermFreq();
+        }
+
+        public void GeneratePhrases()
+        {
+            _corpusBOW = new BagOfWords();
+            foreach (KeyValuePair<int, ProcessingPipeline> idPipePair in IndexIDDict)
+            {
+                idPipePair.Value.NGramNum = settings.NGramNum;
+                idPipePair.Value.MakeNGrams();
+                CorpusBOW.AddTerms(idPipePair.Value.Tokens);
+            }
+            _corpusBOW.AddNormalizedTermFreq();
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// Calculations for IDF have been taken from CE306 combined with knowledge from:
+        /// https://janav.wordpress.com/2013/10/27/tf-idf-and-cosine-similarity/ 
+        /// for 1 +, such that the IDF will never take fractional values below 1
+        public void CalculateIDFs()
+        {
+            foreach (var term in CorpusBOW.Terms)
+            {
+                double IDF = 1 + Math.Log(IndexIDDict.Count / (float)CorpusBOW.Terms[term.Key].DocFreq);
+                CorpusBOW.Terms[term.Key].IDF = IDF;
+            }
+            CorpusBOW.IDFed = true;
+        }
+
+        public void CosineSimilarity(BagOfWords doc1, BagOfWords doc2)
+        {
+
+        }
+
+        public float[] GetInnerProductNormalized(BagOfWords document)
+        {
+
+            return new float[2];
+        }
+
+        public float[] GetIDFWeightedVector(BagOfWords document)
+        {
+/*            List<string> termsInDoc =
+                (from KeyValuePair<string, WordStats> termStatsPair
+                in document.Terms
+                select termStatsPair.Key
+                ).ToList();
+            double[] docNormTFs = document.GetNormalizedTFVector(termsInDoc);*/
+            return null;
         }
     }
 }

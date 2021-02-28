@@ -31,7 +31,6 @@ namespace Assignment1_unitTests
                 SplitBulletPoints().
                 Build();
             Assert.AreEqual(9, pipe.BulletPoints.Count);
-            Assert.AreEqual(9 + sentenceCount, pipe.StringsInPipeline.Count);
         }
 
         [TestMethod]
@@ -65,6 +64,33 @@ namespace Assignment1_unitTests
                 Tokenize().
                 Build();
             Assert.AreEqual(21, pipe.Tokens.Count);
+        }
+
+        [TestMethod]
+        public void TestStemmer()
+        {
+            string input = "beats beat beaten shrink shrank shrinking bites biting bit bitten";
+            List<string> expectedOutput = new List<string>()
+            {
+                "beat",
+                "beat",
+                "beat",
+                "shrink",
+                "shrink",
+                "shrink",
+                "bite",
+                "bite",
+                "bite",
+                "bite"
+            };
+            ProcessingPipeline pipe = new ProcessingPipeline.Builder(input).
+                Tokenize().
+                Build();
+            pipe.Stem();
+            for (int i = 0; i < expectedOutput.Count; ++i)
+            {
+                Assert.AreEqual(expectedOutput[i], pipe.Tokens[i]);
+            }
         }
     }
 }

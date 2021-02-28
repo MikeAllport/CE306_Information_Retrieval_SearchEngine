@@ -36,7 +36,7 @@ namespace Assignment1
             float[] yInt = new float[CorpusWCList.Count];
             for (int i = 0; i < CorpusWCList.Count; i++)
             {
-                xInt[i] = CorpusWCList[i].Value.TotalFreq + 1;
+                xInt[i] = CorpusWCList[i].Value.TermFreq + 1;
                 yInt[i] = i + 1;
             }
             return new Tuple<float[], float[], string>(xInt, yInt, "Zipfs Normal");
@@ -54,7 +54,7 @@ namespace Assignment1
             message += "\n";
             for (int i = startIndex; i <= endIndex; ++i)
             {
-                message += $"Rank: {i} Frequency: {CorpusWCList[i].Value.TotalFreq} String: {CorpusWCList[i].Key}\n";
+                message += $"Rank: {i} Frequency: {CorpusWCList[i].Value.TermFreq} String: {CorpusWCList[i].Key}\n";
                 if (i == match)
                 {
                     message = message.Substring(0, message.Length - 1);
@@ -74,9 +74,9 @@ namespace Assignment1
             int startIndexPrint = Math.Max(rank - 10, 0);
             var result = new Tuple<float[], float[], string>(
                 new float[] { 0, rank, logStats.Item1.Length },
-                new float[] { CorpusWCList[0].Value.TotalFreq,
-                    CorpusWCList[rank].Value.TotalFreq,
-                    CorpusWCList[logStats.Item1.Length - 1].Value.TotalFreq },
+                new float[] { CorpusWCList[0].Value.TermFreq,
+                    CorpusWCList[rank].Value.TermFreq,
+                    CorpusWCList[logStats.Item1.Length - 1].Value.TermFreq },
                 "Selection Log Mid Point"
                 );
             PrintStatsToGui("Zipf log mid point selection", startIndexPrint, rank + 10, rank);
@@ -91,7 +91,7 @@ namespace Assignment1
             float[] y = new float[CorpusWCList.Count];
             for (int i = 0; i < CorpusWCList.Count; i++)
             {
-                y[i] = (float)Math.Log(CorpusWCList[i].Value.TotalFreq);
+                y[i] = (float)Math.Log(CorpusWCList[i].Value.TermFreq);
                 x[i] = (float)Math.Log(i + 1);
             }
             return new Tuple<float[], float[], string>(x, y, "Xipfs Natural Log");
@@ -103,7 +103,7 @@ namespace Assignment1
             List<int> values = new List<int>();
             for (int i = 0; i < CorpusWCList.Count; i++)
             {
-                for (int j = 0; j < CorpusWCList[i].Value.TotalFreq; ++j)
+                for (int j = 0; j < CorpusWCList[i].Value.TermFreq; ++j)
                     values.Add(i + 1);
             }
             int[] valuesInt = values.ToArray();
@@ -117,10 +117,10 @@ namespace Assignment1
             int plus1deviation = (int)Math.Round(meanAvg + standardDeviation);
             var result = new Tuple<float[], float[], string>(
                 new float[] { 1, meanIndex, plus1deviation, CorpusWCList.Count },
-                new float[] { CorpusWCList[0].Value.TotalFreq,
-                    CorpusWCList[Math.Max(meanIndex - 1, 1) - 1].Value.TotalFreq,
-                    CorpusWCList[plus1deviation - 1].Value.TotalFreq,
-                    CorpusWCList[CorpusWCList.Count - 1].Value.TotalFreq },
+                new float[] { CorpusWCList[0].Value.TermFreq,
+                    CorpusWCList[Math.Max(meanIndex - 1, 1) - 1].Value.TermFreq,
+                    CorpusWCList[plus1deviation - 1].Value.TermFreq,
+                    CorpusWCList[CorpusWCList.Count - 1].Value.TermFreq },
                 "Selection Standard Deviation"
                 );
             var startIndex = Math.Max(meanIndex - 10, 0);
@@ -142,7 +142,7 @@ namespace Assignment1
             List<int> values = new List<int>();
             for (int i = 0; i < CorpusWCList.Count; i++)
             {
-                for (int j = 0; j < CorpusWCList[i].Value.TotalFreq; ++j)
+                for (int j = 0; j < CorpusWCList[i].Value.TermFreq; ++j)
                     values.Add(i + 1);
             }
             float median = values[values.Count / 2];
@@ -150,11 +150,11 @@ namespace Assignment1
             float q3 = values[3 * values.Count / 4];
             var result = new Tuple<float[], float[], string>(
                 new float[] { 1, q1, median, q3, CorpusWCList.Count },
-                new float[] { CorpusWCList[0].Value.TotalFreq,
-                    CorpusWCList[(int)Math.Max(q1, 1) - 1].Value.TotalFreq,
-                    CorpusWCList[(int)median - 1].Value.TotalFreq,
-                    CorpusWCList[(int)q3].Value.TotalFreq,
-                    CorpusWCList[CorpusWCList.Count - 1].Value.TotalFreq },
+                new float[] { CorpusWCList[0].Value.TermFreq,
+                    CorpusWCList[(int)Math.Max(q1, 1) - 1].Value.TermFreq,
+                    CorpusWCList[(int)median - 1].Value.TermFreq,
+                    CorpusWCList[(int)q3].Value.TermFreq,
+                    CorpusWCList[CorpusWCList.Count - 1].Value.TermFreq },
                 "Selection IQ Range"
                 );
             var startIndex = Math.Max((int)q1 - 10, 0);
@@ -171,7 +171,7 @@ namespace Assignment1
         {
             var CorpusWCList = CorpusBOW.Terms.ToList();
             // sorts by total frequency, i.e a ranked sorted list with 0 being most frequent
-            CorpusWCList.Sort((first, second) => second.Value.TotalFreq.CompareTo(first.Value.TotalFreq));
+            CorpusWCList.Sort((first, second) => second.Value.TermFreq.CompareTo(first.Value.TermFreq));
             return CorpusWCList;
         }
     }

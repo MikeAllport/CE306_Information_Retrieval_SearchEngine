@@ -6,6 +6,8 @@ using static Assignment1.ProcessingPipeline.Pipes;
 using System.Linq;
 using OpenNLP;
 using System.Text.RegularExpressions;
+using LemmaSharp;
+using System.IO;
 
 namespace Assignment1
 {
@@ -52,6 +54,8 @@ namespace Assignment1
         private List<string> _stringsInPipeline = new List<string>();
         public List<string> StringsInPipeline { get { return _stringsInPipeline; } }
 
+        public BagOfWords TermsAndStats { get; set; } = new BagOfWords();
+
         internal int _ngramNum;
         public int NGramNum { get { return _ngramNum; } set { _ngramNum = value; } }
 
@@ -62,6 +66,7 @@ namespace Assignment1
             "libs/OpenNlp/Resources/Models/";
         private static readonly string SENTENCE_MODEL = MODEL_PATH + "EnglishSD.nbin";
         private static readonly string REGULAR_TOKENIZER = MODEL_PATH + "EnglishTok.nbin";
+
 
         /// <summary>
         /// Private internal constructor, so this cannot be used without a builder
@@ -153,7 +158,7 @@ namespace Assignment1
         {
             Regex pattern = new Regex(@"'");
             input = pattern.Replace(input, "");
-            pattern = new Regex("[!\\\"$%&()*+-./:;<=>?@^_`{|}~\n]");
+            pattern = new Regex(@"[\p{P}\p{S}]");
             input = pattern.Replace(input, " ");
             return input;
         }
@@ -182,11 +187,25 @@ namespace Assignment1
                 foreach (string word in from str in tokenizer.Tokenize(value) select str)
                     _tokens.Add(word);
             }
+            ResetTerms();
         }
 
+        private void ResetTerms()
+        {
+            TermsAndStats = new BagOfWords();
+            TermsAndStats.AddTerms(_tokens);
+            TermsAndStats.IndexWords();
+            TermsAndStats.AddNormalizedTermFreq();
+        }
+
+        /// <summary>
+        /// RemoveTokens removes words from a given token list from this instances token list
+        /// </summary>
+        /// <param name="tokens">Words to be removed from this instances tokens</param>
         public void RemoveTokens(List<string> tokens)
         {
             _tokens = (from string t in _tokens where !tokens.Contains(t) select t).ToList();
+            ResetTerms();
         }
 
         /// <summary>
@@ -204,6 +223,19 @@ namespace Assignment1
                 ngram = ngram.Substring(0, ngram.Length - NGRAM_DELIM.Length);
                 _tokens.Add(ngram);
             }
+            ResetTerms();
+        }
+
+        /// <summary>
+        /// Stem's purpose is stemming, for each word in the instances token list the words stem is
+        /// found and all stem words indexes in the token list is tracked. Once a dictionary of word stems
+        /// and indexes have been made, all tokens are replaced with their stems
+        /// </summary>
+        public void Stem()
+        {
+            Dictionary<string, List<int>> wordsAndIndices = new Dictionary<string, List<int>>();
+            _tokens = (from string token in _tokens select Stemmer.Stem(token)).ToList();
+            ResetTerms();
         }
 
         /// <summary>
@@ -221,7 +253,7 @@ namespace Assignment1
         /*******************************************************************/
 
         /// <summary>
-        /// Builders purpose is to generate a pipeline and contruct/run the pipeline through its .Build function
+        /// Builders purpose is to generate a pipeline and construct/run the pipeline through its .Build function
         /// All over functions simply add their respective enumeration to the pipelist which is then input into
         /// the generated ProcessingPipeline object returned in the .Build function
         /// </summary>

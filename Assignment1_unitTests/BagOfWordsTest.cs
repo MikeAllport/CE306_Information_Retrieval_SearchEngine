@@ -25,7 +25,7 @@ namespace Assignment1_unitTests
         public void TestAddTerms()
         {
             Assert.AreEqual(2, bow.Terms[wordlist1[0]].DocFreq);
-            Assert.AreEqual(3, bow.Terms[wordlist1[0]].TotalFreq);
+            Assert.AreEqual(3, bow.Terms[wordlist1[0]].TermFreq);
             Assert.AreEqual(false, bow.Indexed);
         }
 
@@ -38,11 +38,11 @@ namespace Assignment1_unitTests
         }
 
         [TestMethod]
-        public void TestTermVectorSucc()
+        public void TestTermVectorExistsSucc()
         { 
             bow.IndexWords();
-            BitArray arr = new BitArray(new bool[] { true, false, true, true });
-            var bowArr = bow.GetTermVector(wordlist1);
+            double[] arr = new double[] { 0.0, 1.0, 1.0, 0.0 };
+            var bowArr = bow.GetTermVector(BagOfWords.WithWords(wordlist2));
             for(int i = 0; i < arr.Length; ++i)
             {
                 Assert.AreEqual(arr[i], bowArr[i]);
@@ -52,8 +52,29 @@ namespace Assignment1_unitTests
         [TestMethod]
         public void TestTermVectorNotIndexed()
         {
-            var bowArr = bow.GetTermVector(wordlist1);
+            var bowArr = bow.GetTermVector(BagOfWords.WithWords(wordlist1));
             Assert.IsNull(bowArr);
+        }
+
+        [TestMethod]
+        public void TestTermVectorNormalizedTF()
+        {
+            bow.IndexWords();
+            bow.AddNormalizedTermFreq();
+            double[] arr = new double[] { 1/4.0, 0.0, 3/4.0, 1/4.0 };
+            var bowArr = bow.GetNormalizedTFVector(BagOfWords.WithWords(wordlist1));
+            for (int i = 0; i < arr.Length; ++i)
+            {
+                Assert.AreEqual(arr[i], bowArr[i]);
+            }
+        }
+
+        [TestMethod]
+        public void GeneralTestVectorMultiplication()
+        {
+            double[] arr = { 2, 3, 4 };
+            double[] expectedResult = { 4, 9, 16 };
+            double[] test = arr * arr;
         }
     }
 }

@@ -10,6 +10,9 @@ namespace Assignment1
     {
         public int Index { get; set; } = 0;
         public int DocFreq { get; set; } = 0;
-        public int TotalFreq { get; set; } = 0;
+        public float NormalizedTermFreq { get; set; } = 0;
+        public int TermFreq { get; set; } = 0;
+        public double TFIDF { get; set; } = 0;
+        public double IDF { get; set; } = 0;
     }
 }

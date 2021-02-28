@@ -61,17 +61,32 @@ namespace Assignment1
             {
                 gui.AddConsoleMessage(e.Message, IGUIAdapter.GUIColor.ERROR_COLOR);
             }
-            engine = new AnalyserEngine(_miService.MovieIndexMap, gui, new AnalyserEngineSettings());
         }
 
         public void PerformTokenization()
         {
+            engine = new AnalyserEngine(_miService.MovieIndexMap, gui, new AnalyserEngineSettings());
             var tokenizedService = new MovieIndexServiceProcessed<MovieIndexTokenized>();
             var elasticService = new ElasticService<MovieIndexService<MovieIndexTokenized>, MovieIndexTokenized>(tokenizedService);
             var top6docs = AddDocuments(tokenizedService);
             tokenizedService.UploadData(elasticService);
             elasticService.AwaitASync();
-            string result = $"Created Index: {tokenizedService.GetIndexTitle()}\n> 6 results: \n";
+            string result = $"Created Tokenized Processed Index: {tokenizedService.GetIndexTitle()}\n> 6 results: \n";
+            foreach (var document in top6docs)
+            {
+                result += document.Serialize() + "\n";
+            }
+            gui.AddConsoleMessage(result);
+        }
+
+        public void PerformStemming()
+        {
+            var tokenizedService = new MovieIndexServiceProcessed<MovieIndexStemmed>();
+            var elasticService = new ElasticService<MovieIndexService<MovieIndexStemmed>, MovieIndexStemmed>(tokenizedService);
+            var top6docs = AddDocuments(tokenizedService);
+            tokenizedService.UploadData(elasticService);
+            elasticService.AwaitASync();
+            string result = $"Created Stemmed Processed Index: {tokenizedService.GetIndexTitle()}\n> 6 results: \n";
             foreach (var document in top6docs)
             {
                 result += document.Serialize() + "\n";
@@ -110,6 +125,25 @@ namespace Assignment1
                 results.Add(document);
             }
             return results.Take(6).ToList();
+        }
+        private List<MovieIndexStemmed> AddDocuments(MovieIndexService<MovieIndexStemmed> miservice)
+        {
+            SortedDictionary<int, MovieIndexStemmed> results = new SortedDictionary<int, MovieIndexStemmed>();
+            foreach (var processedIndexID in engine.IndexIDDict)
+            {
+                var document = new MovieIndexStemmed(
+                    engine.UnProcessedIndexes[processedIndexID.Key],
+                    processedIndexID.Value
+                    );
+                miservice.MovieIndexMap[processedIndexID.Key] = document;
+                results[processedIndexID.Key] = document;
+            }
+            engine.GenerateStems();
+            foreach (var processedIndexID in engine.IndexIDDict)
+            {
+                results[processedIndexID.Key].AddStemmedTokensFromPipe(processedIndexID.Value);
+            }
+            return (from KeyValuePair<int, MovieIndexStemmed> idIndexPair in results select idIndexPair.Value).Take(6).ToList();
         }
     }
 }

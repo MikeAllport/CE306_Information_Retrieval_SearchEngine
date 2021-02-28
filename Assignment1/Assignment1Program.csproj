@@ -12,6 +12,7 @@
   <ItemGroup>
     <PackageReference Include="CsvHelper" Version="22.1.1" />
     <PackageReference Include="Elasticsearch.net" Version="7.10.1" />
+    <PackageReference Include="LemmaGenerator" Version="1.1.0" />
     <PackageReference Include="NEST" Version="7.10.1" />
     <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
     <PackageReference Include="OpenNLP" Version="1.3.5" />

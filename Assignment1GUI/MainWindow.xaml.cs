@@ -39,7 +39,7 @@ namespace Assignment1GUI
             OpenFileDialog openFileDialog = new OpenFileDialog();
             if (openFileDialog.ShowDialog() == true)
             {
-                AddConsoleMessage("Indexing full text documents, please wait", GUIColor.ERROR_COLOR);
+                AddConsoleMessage("Indexing full text documents, please wait a moment...", GUIColor.ERROR_COLOR);
                 DoAction(program.PerformFullIndexing, openFileDialog.FileName);
             }
         }
@@ -47,8 +47,14 @@ namespace Assignment1GUI
 
         private void OnComp2Click(object sender, RoutedEventArgs e)
         {
-            AddConsoleMessage("Proccessing documents, this may take a few minutes", GUIColor.ERROR_COLOR);
+            AddConsoleMessage("Proccessing documents, this may take a few minutes...", GUIColor.ERROR_COLOR);
             DoAction(program.PerformTokenization);
+        }
+
+        private void OnComp3Click(object sender, RoutedEventArgs e)
+        {
+            AddConsoleMessage("Stemming documents, please wait a moment...", GUIColor.ERROR_COLOR);
+            DoAction(program.PerformStemming);
         }
 
         // Code adapted from:
