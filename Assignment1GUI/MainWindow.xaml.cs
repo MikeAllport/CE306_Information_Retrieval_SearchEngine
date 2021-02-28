@@ -12,6 +12,9 @@ using System.Text.RegularExpressions;
 using IGUIAdapter;
 using SimpleWPFChart;
 
+using System.Threading;
+using System.Windows.Threading;
+
 namespace Assignment1GUI
 {
     /// <summary>
@@ -22,6 +25,8 @@ namespace Assignment1GUI
         private int _consoleRowCount = 0;
         private Program program;
         Application ownerApp;
+        public delegate void PerformActionNoArg();
+        public delegate void PerformAction1Arg(string arg);
         public MainWindow()
         {
 
@@ -34,8 +39,58 @@ namespace Assignment1GUI
             OpenFileDialog openFileDialog = new OpenFileDialog();
             if (openFileDialog.ShowDialog() == true)
             {
-                program.PerformIndexing(openFileDialog.FileName);
+                AddConsoleMessage("Indexing full text documents, please wait", GUIColor.ERROR_COLOR);
+                DoAction(program.PerformFullIndexing, openFileDialog.FileName);
             }
+        }
+
+
+        private void OnComp2Click(object sender, RoutedEventArgs e)
+        {
+            AddConsoleMessage("Proccessing documents, this may take a few minutes", GUIColor.ERROR_COLOR);
+            DoAction(program.PerformTokenization);
+        }
+
+        // Code adapted from:
+        // https://stackoverflow.com/questions/818911/force-a-wpf-control-to-refresh
+        // @Remco
+        private void DoAction(PerformActionNoArg method)
+        {
+            Thread thread = new Thread(new ThreadStart(() =>
+            {
+                Thread.Sleep(50);
+                try
+                {
+                    this.Dispatcher.BeginInvoke(DispatcherPriority.Send,
+                        new Action(() =>
+                        {
+                            method();
+                        }));
+                }
+                catch { }
+            }));
+            thread.Start();
+        }
+
+        // Code adapted from:
+        // https://stackoverflow.com/questions/818911/force-a-wpf-control-to-refresh
+        // @Remco
+        private void DoAction(PerformAction1Arg method, string arg)
+        {
+            Thread thread = new Thread(new ThreadStart(() =>
+            {
+                Thread.Sleep(50); // this is important ...
+                try
+                {
+                    this.Dispatcher.BeginInvoke(DispatcherPriority.Send,
+                        new Action(()=>
+                        {
+                            method(arg);
+                        }));
+                }
+                catch { }
+            }));
+            thread.Start();
         }
 
         public void AddConsoleMessage(
@@ -66,7 +121,6 @@ namespace Assignment1GUI
             MessageGrid.Children.Add(textToAdd);
             Grid.SetRow(textToAdd, _consoleRowCount++);
             consoleViewer.ScrollToBottom();
-
         }
 
         private static SolidColorBrush GetBrush(GUIColor? colGUI, SolidColorBrush defaultBrush)

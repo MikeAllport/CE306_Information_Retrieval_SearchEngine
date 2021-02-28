@@ -13,8 +13,8 @@ namespace Assignment1
         public static readonly string SOLUTION_DIR = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..\\..\\..\\..\\"));
         private static readonly string DATA_ABS_PATH = SOLUTION_DIR +"documents.csv";
         private static readonly int _numDocuments = 1000;
-        private MovieIndexService _miService;
-        private ElasticService<MovieIndexService> _esService;
+        private MovieIndexService<MovieIndex> _miService;
+        private ElasticService<MovieIndexService<MovieIndex>, MovieIndex> _esService;
         private AnalyserEngine engine;
         private IGUIAdapter.Adapter gui;
         public static bool _running = true;
@@ -30,7 +30,7 @@ namespace Assignment1
         
         /// <summary>
         /// Assignment Step 1 - Full Indexing
-        /// This function parses the csv contents a given URI, given the uri points to a correctly
+        /// This function parses the csv contents of a given URI, given the uri points to a correctly
         /// formatted movie index csv, through usage of MovieIndexService. It then establishes a 
         /// connection to ElasticSearch, and uses the ESService to document all parsed MovieIdndexes.
         /// Upon indexing, response strings of ES's current indexes following indexing and a query is made
@@ -38,14 +38,14 @@ namespace Assignment1
         /// to the gui console.
         /// </summary>
         /// <param name="uri">The full absolute path to a file, must be a MovieIndex csv as per assignment</param>
-        public void PerformIndexing(string uri)
+        public void PerformFullIndexing(string uri)
         {
             try
             {
-                _miService = new MovieIndexService();
+                _miService = new MovieIndexService<MovieIndex>();
                 _miService.NumDocuments = _numDocuments;
                 AddDocuments(_miService, uri);
-                _esService = new ElasticService<MovieIndexService>(_miService);
+                _esService = new ElasticService<MovieIndexService<MovieIndex>, MovieIndex>(_miService);
                 _miService.UploadData(_esService);
                 _esService.AwaitASync();
                 string result = _esService.DescribeIndices();
@@ -64,21 +64,52 @@ namespace Assignment1
             engine = new AnalyserEngine(_miService.MovieIndexMap, gui, new AnalyserEngineSettings());
         }
 
-        public void RunZipfsSelectionAnalysis()
+        public void PerformTokenization()
         {
-            gui.SetChart(engine.GetZipfsNormStats());
-            gui.SetChart(engine.GetZipfsLogStats());
-            gui.SetChart(engine.SelectStopWordsStandardDev());
-            gui.SetChart(engine.SelectStopWordsMedianIQRange());
-            gui.SetChart(engine.SelectStopWordsLogMidPoint());
+            var tokenizedService = new MovieIndexServiceProcessed<MovieIndexTokenized>();
+            var elasticService = new ElasticService<MovieIndexService<MovieIndexTokenized>, MovieIndexTokenized>(tokenizedService);
+            var top6docs = AddDocuments(tokenizedService);
+            tokenizedService.UploadData(elasticService);
+            elasticService.AwaitASync();
+            string result = $"Created Index: {tokenizedService.GetIndexTitle()}\n> 6 results: \n";
+            foreach (var document in top6docs)
+            {
+                result += document.Serialize() + "\n";
+            }
+            gui.AddConsoleMessage(result);
         }
 
-        private static void AddDocuments(MovieIndexService miservice, string uri)
+        public void RunZipfsSelectionAnalysis()
+        {
+            gui.SetChart(engine.StopWordGenerator.GetZipfsNormStats());
+            gui.SetChart(engine.StopWordGenerator.GetZipfsLogStats());
+            gui.SetChart(engine.StopWordGenerator.SelectStopWordsStandardDev());
+            gui.SetChart(engine.StopWordGenerator.SelectStopWordsMedianIQRange());
+            gui.SetChart(engine.StopWordGenerator.SelectStopWordsLogMidPoint());
+        }
+
+        private void AddDocuments(MovieIndexService<MovieIndex> miservice, string uri)
         {
             DataMunger munger = new DataMunger(uri);
             var movieIndexList = munger.GetMovieIndexes();
             movieIndexList.Sort();
             miservice.AddDocuments(movieIndexList);
+        }
+
+        private List<MovieIndexTokenized> AddDocuments(MovieIndexService<MovieIndexTokenized> miservice)
+        {
+            List<MovieIndexTokenized> results = new List<MovieIndexTokenized>();
+            engine.GenerateTokenizatedPipes();
+            foreach (var processedIndexID in engine.IndexIDDict)
+            {
+                var document = new MovieIndexTokenized(
+                    engine.UnProcessedIndexes[processedIndexID.Key], 
+                    processedIndexID.Value
+                    );
+                miservice.MovieIndexMap[processedIndexID.Key] = document;
+                results.Add(document);
+            }
+            return results.Take(6).ToList();
         }
     }
 }

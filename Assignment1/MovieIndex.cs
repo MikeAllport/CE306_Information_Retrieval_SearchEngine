@@ -46,6 +46,21 @@ namespace Assignment1
         [Text(Name = PLOT_KEY)]
         public string Plot { get; set; } = "";
 
+        public MovieIndex(MovieIndex other)
+        {
+            this.ID = other.ID;
+            this.ReleaseYear = other.ReleaseYear;
+            this.Title = other.Title;
+            this.Origin = other.Origin;
+            this.Director = other.Director;
+            this.Cast = other.Cast;
+            this.Genre = other.Genre;
+            this.Wiki = other.Wiki;
+            this.Plot = other.Plot;
+        }
+
+        public MovieIndex() { }
+
         public string GetFullText()
         {
             return $"{ReleaseYear} {Title} {Origin} {Director} {Cast} {Genre} {Wiki} {Plot}";
@@ -107,7 +122,7 @@ namespace Assignment1
 
         /* Adapted from: https://stackoverflow.com/questions/59375124/how-to-use-system-hashcode-combine-with-more-than-8-values */
         /// <summary>
-        /// 
+        /// GetHashCode overrides default hash code method and returns a unique hash related to this object
         /// </summary>
         /// <param name="obj"></param>
         /// <returns></returns>
@@ -139,6 +154,12 @@ namespace Assignment1
             if (value == null)
                 return;
             writer.WriteStartObject();
+            SetWriter(index, writer, serializer);
+            writer.WriteEndObject();
+        }
+
+        protected virtual void SetWriter(MovieIndex index, JsonWriter writer, JsonSerializer serializer)
+        {
             writer.WritePropertyName(ID_KEY);
             serializer.Serialize(writer, index.ID.ToString());
             writer.WritePropertyName(RELEASEY_KEY);
@@ -157,7 +178,6 @@ namespace Assignment1
             serializer.Serialize(writer, index.Wiki);
             writer.WritePropertyName(PLOT_KEY);
             serializer.Serialize(writer, index.Plot);
-            writer.WriteEndObject();
         }
 
         //deserialize
@@ -165,6 +185,12 @@ namespace Assignment1
         {
             var index = new MovieIndex();
             JObject jsonObj = JObject.Load(reader);
+            SetReader(index, jsonObj);
+            return index;
+        }
+
+        protected virtual void SetReader(MovieIndex index, JObject jsonObj)
+        {
             var id = jsonObj[ID_KEY].Value<int>();
             var releaseYear = jsonObj[RELEASEY_KEY].Value<int>();
             var title = jsonObj[TITLE_KEY].Value<string>();
@@ -183,7 +209,6 @@ namespace Assignment1
             index.Genre = genre;
             index.Wiki = wiki;
             index.Plot = plot;
-            return index;
         }
 
         public override bool CanConvert(Type objectType)
@@ -192,13 +217,13 @@ namespace Assignment1
         }
 
         // simple serialization/deserialization methods for ease of access
-        public string Serialize()
+        public virtual string Serialize()
         {
             string serialization = JsonConvert.SerializeObject(this, Formatting.Indented);
             return serialization;
         }
 
-        public MovieIndex Deserialize(string jsonSerialized)
+        public virtual MovieIndex Deserialize(string jsonSerialized)
         {
             try
             {

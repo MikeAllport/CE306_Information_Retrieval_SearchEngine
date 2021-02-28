@@ -20,9 +20,11 @@ namespace Assignment1
         public void CreateIndex(ElasticClient client);
     }
 
-    public interface IDocumentable<T> where T: class, IIndexableDB
+    public interface IDocumentable<T, J> 
+        where T: class, IIndexableDB
+        where J: MovieIndex
     {
-        public void UploadData(ElasticService<T> service);
+        public void UploadData(ElasticService<T, J> service);
     }
 
     /// <summary>

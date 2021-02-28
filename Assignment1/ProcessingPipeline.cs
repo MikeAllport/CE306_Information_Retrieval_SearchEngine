@@ -42,18 +42,17 @@ namespace Assignment1
         public string OriginalText { get; }
         private List<string> _tokens = new List<string>();
         public List<string> Tokens { get { return _tokens; } }
-        Dictionary<string, int> _tokenCount = new Dictionary<string, int>();
-        public Dictionary<string, int> TokenWordCount { get { return _tokenCount; } }
+
         private List<string> _sentences = new List<string>();
         public List<string> Sentences { get { return _sentences; } }
+
         private List<string> _bulletPoints = new List<string>();
         public List<string> BulletPoints { get { return _bulletPoints; } }
+
         private List<string> _stringsInPipeline = new List<string>();
         public List<string> StringsInPipeline { get { return _stringsInPipeline; } }
-        private List<string> _nGrams = new List<string>();
-        public List<string> NGrams { get { return _nGrams; } }
+
         internal int _ngramNum;
-        public Dictionary<string, float> TFIDF = new Dictionary<string, float>();
         public int NGramNum { get { return _ngramNum; } set { _ngramNum = value; } }
 
         // some constants used for the OpenNLP model directories and ngram delimiter
@@ -129,7 +128,7 @@ namespace Assignment1
             List<string> output = new List<string>();
             foreach (string inputItem in _stringsInPipeline)
             {
-                Regex pattern = new Regex("([\u2022][^\u2022\n$]*)|([0-9].[^0-9\n$]*)|([0-9]-[^0-9\n$]*)");
+                Regex pattern = new Regex(@"([\u2022][^\u2022\n$]*)|([0-9]{1,}\.\s[^0-9\n$]*)|([0-9]{1,}\s-\s[^0-9\n$]*)");
                 var hits = pattern.Matches(inputItem).Where(match => !IsBlank(match.Value));
                 _bulletPoints = _bulletPoints.Union(from Match m in pattern.Matches(inputItem) select m.Value).ToList();
                 output = output.Union(pattern.Split(inputItem).Where(match => !IsBlank(match))).ToList();
@@ -152,9 +151,9 @@ namespace Assignment1
 
         private string RemovePunc(string input)
         {
-            Regex pattern = new Regex("['`]");
+            Regex pattern = new Regex(@"'");
             input = pattern.Replace(input, "");
-            pattern = new Regex("[.\\[\\]\\{\\}\\\"&\\(\\),\\-_;:]");
+            pattern = new Regex("[!\\\"$%&()*+-./:;<=>?@^_`{|}~\n]");
             input = pattern.Replace(input, " ");
             return input;
         }
@@ -183,25 +182,11 @@ namespace Assignment1
                 foreach (string word in from str in tokenizer.Tokenize(value) select str)
                     _tokens.Add(word);
             }
-            CountTokens();
-        }
-
-        private void CountTokens()
-        {
-            _tokenCount = new Dictionary<string, int>();
-            foreach (string token in _tokens)
-            {
-                if (_tokenCount.ContainsKey(token))
-                    _tokenCount[token]++;
-                else
-                    _tokenCount[token] = 1;
-            }
         }
 
         public void RemoveTokens(List<string> tokens)
         {
             _tokens = (from string t in _tokens where !tokens.Contains(t) select t).ToList();
-            CountTokens();
         }
 
         /// <summary>
@@ -217,37 +202,8 @@ namespace Assignment1
                     ngram += _tokens[nextNgramWord] + NGRAM_DELIM;
                 }
                 ngram = ngram.Substring(0, ngram.Length - NGRAM_DELIM.Length);
-                _nGrams.Add(ngram);
+                _tokens.Add(ngram);
             }
-        }
-
-        /// <summary>
-        /// Counts the frequency of NGrams seen in the full text, and adds the ngram n times to the
-        /// token list such that _tokens contains full number of occurences
-        /// </summary>
-        public List<KeyValuePair<string, int>> CountNGrams()
-        {
-            string fullText = RemovePunc(OriginalText.ToLower());
-            List<KeyValuePair<string, int>> ngramsAndCounts = new List<KeyValuePair<string, int>>();
-            foreach (var ngram in _nGrams)
-            {
-                var seperateWords = ngram.Split(NGRAM_DELIM);
-                string patternString = "";
-                string spaceDetect = "[ ]{0,1}";
-                for (int i = 0; i < seperateWords.Length; i++)
-                {
-                    patternString += Regex.Escape(seperateWords[i]) + spaceDetect;
-                }
-                Regex pattern = new Regex(patternString);
-                int count = (from Match m in pattern.Matches(fullText) select m.Value).Count();
-                ngramsAndCounts.Add(new KeyValuePair<string, int>(ngram, count));
-                for(int i = 0; i < count; ++i)
-                {
-                    _tokens.Add(ngram);
-                }
-                CountTokens();
-            }
-            return ngramsAndCounts;
         }
 
         /// <summary>

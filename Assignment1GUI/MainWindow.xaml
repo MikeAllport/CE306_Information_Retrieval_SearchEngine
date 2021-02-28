@@ -18,10 +18,13 @@
         </ScrollViewer>
         <TextBlock HorizontalAlignment="Left" Margin="20,58,0,0" Text="Console" FontWeight="Bold" TextWrapping="Wrap" VerticalAlignment="Top"/>
         <Button x:Name="Comp1But" HorizontalAlignment="Left" Margin="15,9,0,0" VerticalAlignment="Top" Height="40" Width="90" Click="OnComp1Click">
-            <TextBlock>Component 1<LineBreak/>Import Dataset</TextBlock>
+            <TextBlock TextAlignment="Center"><Run Text="Component 1"/><LineBreak/><Run Text="Import Dataset"/></TextBlock>
         </Button>
-        <Button x:Name="Comp1But_Copy2" HorizontalAlignment="Left" Margin="715,564,0,0" VerticalAlignment="Top" Height="35" Width="140" Click="OnZipfAnalysis" Grid.Column="1">
-            <TextBlock><Run Text="Zipf Selection Analysis"/></TextBlock>
+        <Button x:Name="ZipfAnalysis" HorizontalAlignment="Right" Margin="0,564,50,0" VerticalAlignment="Top" Height="35" Width="140" Click="OnZipfAnalysis" Grid.Column="1">
+            <TextBlock TextAlignment="Center"><Run Text="Zipf Selection Analysis"/></TextBlock>
+        </Button>
+        <Button x:Name="Comp2But" HorizontalAlignment="Left" Margin="125,9,0,0" VerticalAlignment="Top" Height="40" Width="90" Click="OnComp2Click">
+            <TextBlock TextAlignment="Center"><Run Text="Component 2"/><LineBreak/><Run Text="Tokenize"/></TextBlock>
         </Button>
 
     </Grid>

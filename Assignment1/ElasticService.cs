@@ -21,7 +21,9 @@ namespace Assignment1
     /// objects to the database
     /// </summary>
     /// <typeparam name="T"></typeparam>
-    public class ElasticService<T> where T: class, IIndexableDB
+    public class ElasticService<T, J> 
+        where T: class, IIndexableDB
+        where J: MovieIndex
     {
         private readonly Uri URI = new Uri("http://localhost:9200/"); // ElasticSearch uri
         public  ElasticClient client; // database connection
@@ -59,9 +61,9 @@ namespace Assignment1
             return BasicWebRequest("_cat/indices?v");
         }
 
-        public IReadOnlyCollection<MovieIndex> GetFullMatches(int num)
+        public IReadOnlyCollection<J> GetFullMatches(int num)
         {
-            var response = client.Search<MovieIndex>(s => s
+            var response = client.Search<J>(s => s
                 .From(0)
                 .Size(num)
                 .MatchAll()

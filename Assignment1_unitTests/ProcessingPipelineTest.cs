@@ -26,9 +26,8 @@ namespace Assignment1_unitTests
         [TestMethod]
         public void TestBulletPoints()
         {
-            string input = "1.hello 2. this\n3.Is da bomb\n1 - if 2 - pipeline\n3- works with\n• another • bullet\n• here";
+            string input = "1. hello 2. this\n3. Is da bomb\n1 - if 2 - pipeline\n3 - works with\n• another • bullet\n• here";
             ProcessingPipeline pipe = new ProcessingPipeline.Builder(sentences + input).
-                SplitSentences().
                 SplitBulletPoints().
                 Build();
             Assert.AreEqual(9, pipe.BulletPoints.Count);
@@ -66,9 +65,6 @@ namespace Assignment1_unitTests
                 Tokenize().
                 Build();
             Assert.AreEqual(21, pipe.Tokens.Count);
-            Assert.AreEqual(2, pipe.TokenWordCount["been"]);
-            Assert.AreEqual(2, pipe.TokenWordCount["."]);
-            Assert.AreEqual(1, pipe.TokenWordCount["-"]);
         }
     }
 }
