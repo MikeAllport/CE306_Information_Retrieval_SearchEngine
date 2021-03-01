@@ -11,9 +11,10 @@ namespace Assignment1
     public class Program
     {
         public static readonly string SOLUTION_DIR = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..\\..\\..\\..\\"));
-        private static readonly string DEFAULT_DATA_FILE = SOLUTION_DIR + "documents.csv";
+        public static readonly string DEFAULT_DATA_FILE = SOLUTION_DIR + "documents.csv";
         private const int _numDocuments = 1000;
         private AnalyserEngine engine;
+        public AnalyserEngine AnalyserEngine { get { return engine; } }
         private IGUIAdapter.Adapter gui;
         public static bool _running = true;
 

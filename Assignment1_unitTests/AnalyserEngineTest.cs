@@ -6,6 +6,29 @@ using System.Text.RegularExpressions;
 using System.Linq;
 using Utils;
 using System.Collections;
+
+namespace Assignment1_unitTests
+{
+    [TestClass]
+    public class TestAnalyserEngine
+    {
+        Program prog = new Program(null);
+        public TestAnalyserEngine()
+        {
+            prog.PerformFullIndexing(Program.DEFAULT_DATA_FILE, 50);
+            prog.PerformTokenization();
+        }
+
+        [TestMethod]
+        public void TestIDFSelection()
+        {
+            prog.AnalyserEngine.RemoveStopWords();
+            prog.AnalyserEngine.GeneratePhrases();
+            prog.AnalyserEngine.RemoveVeryInfrequentWords();
+            prog.AnalyserEngine.CalculateIDFs();
+        }
+    }
+}
 /*
 
 namespace Assignment1_unitTests

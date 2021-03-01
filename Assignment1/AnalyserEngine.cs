@@ -54,6 +54,10 @@ namespace Assignment1
             this.settings = settings;
         }
 
+        /// <summary>
+        /// Main method for generating processed pipes from the unprocessed MovieIndexes
+        /// generates a pipe with builder to process, adds pipe and id to IndexIDDict
+        /// </summary>
         public void GenerateTokenizatedPipes()
         {
             foreach (var entry in UnProcessedIndexes)
@@ -71,8 +75,8 @@ namespace Assignment1
         }
 
         /// <summary>
-        /// RemoveStopWords gets a generated stop word list and calls each pipe to remove the term and
-        /// calls the CorpusBOW to remove the term
+        /// RemoveStopWords gets a generated stop word list and calls each pipe to remove the terms and
+        /// calls the CorpusBOW to remove the terms
         /// </summary>
         public void RemoveStopWords()
         {
@@ -82,6 +86,34 @@ namespace Assignment1
                 pipe.Value.RemoveTokens(stopWords);
             }
             CorpusBOW.RemoveTerms(stopWords);
+        }
+
+        /// <summary>
+        /// GenerateStopWords calls the StopWordGenerator method associated with the settings detection type
+        /// to generate a list of stop words
+        /// </summary>
+        /// <returns>List of the stop words generated</returns>
+        private List<string> GenerateStopWords()
+        {
+            _stopWordGenerator = new StopWordGenerator(gui, CorpusBOW);
+            List<string> stopWords;
+            switch (settings.StopType)
+            {
+                case MEAN:
+                    this.StopWordGenerator.SelectStopWordsStandardDev();
+                    break;
+                case LOG_MIDPOINT:
+                    this.StopWordGenerator.SelectStopWordsLogMidPoint();
+                    break;
+                case INTER_QUARTILE:
+                    this.StopWordGenerator.SelectStopWordsMedianIQRange();
+                    break;
+                case TOP_N:
+                    this.StopWordGenerator.SelectStopWordsN(Math.Max(settings.StopWordN, 0));
+                    break;
+            }
+            stopWords = this.StopWordGenerator.StopWords;
+            return stopWords;
         }
 
 
@@ -115,7 +147,7 @@ namespace Assignment1
                 Select(termStats => termStats.Key).
                 ToList();
             // removes any words from infrequent terms that appear in important fields such as cast/title
-            // in any pipe
+            // in any pipes
             foreach (var pipeIdPair in IndexIDDict)
             {
                 string importantTerms = "";
@@ -134,35 +166,9 @@ namespace Assignment1
             return infrequentTerms;
         }
 
-
         /// <summary>
-        /// GenerateStopWords calls the StopWordGenerator method associated with the settings detection type
-        /// to generate a list of stop words
+        /// Adds NGrams from pipes of word length 1-settings.NGramNum for all pipes
         /// </summary>
-        /// <returns>List of the stop words generated</returns>
-        private List<string> GenerateStopWords()
-        {
-            _stopWordGenerator = new StopWordGenerator(gui, CorpusBOW);
-            List<string> stopWords;
-            switch (settings.StopType)
-            {
-                case MEAN:
-                    this.StopWordGenerator.SelectStopWordsStandardDev();
-                    break;
-                case LOG_MIDPOINT:
-                    this.StopWordGenerator.SelectStopWordsLogMidPoint();
-                    break;
-                case INTER_QUARTILE:
-                    this.StopWordGenerator.SelectStopWordsMedianIQRange();
-                    break;
-                case TOP_N:
-                    this.StopWordGenerator.SelectStopWordsN(Math.Max(settings.StopWordN, 0));
-                    break;
-            }
-            stopWords = this.StopWordGenerator.StopWords;
-            return stopWords;
-        }
-
         public void GeneratePhrases()
         {
             _corpusBOW = new BagOfWords();
@@ -174,12 +180,36 @@ namespace Assignment1
             }
         }
 
+        /// <summary>
+        /// Generates TFIDFs for each pipe/document and retains only topNPercent of keywords
+        /// i.e top 80% keywords of 100 keywords, sort words based on highest score, retain top 80 words
+        /// </summary>
         public void SelectKeyWords()
         {
+            GenerateTFIDFs();
+            ExtractTopPercentageKeywords();
+        }
+
+        /// <summary>
+        /// Assigns IDF's for all terms in CorpusBOW, then calls all pipes BOW's to assign TFIDF for their
+        /// terms
+        /// </summary>
+        public void GenerateTFIDFs()
+        {
             CalculateIDFs();
-            foreach(var pipeline in IndexIDDict)
+            foreach (var pipeline in IndexIDDict)
             {
                 pipeline.Value.TermsAndStats.SetTFIDF(CorpusBOW);
+            }
+        }
+
+        /// <summary>
+        /// Calls each pipe to remove words from Keywords based on top percentage to keep
+        /// </summary>
+        public void ExtractTopPercentageKeywords()
+        {
+            foreach (var pipeline in IndexIDDict)
+            {
                 pipeline.Value.SelectTopPercentKeywords(settings.topNPercentKeywords);
             }
         }
