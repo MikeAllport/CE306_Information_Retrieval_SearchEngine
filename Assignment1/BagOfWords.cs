@@ -116,20 +116,18 @@ namespace Assignment1
         {
             if (!NormalizedTF)
             {
-                Console.WriteLine("Error BagOfWords::GetNormalizedTFVector, attempt to get vector on"
+                throw new Exception("Error BagOfWords::GetNormalizedTFVector, attempt to get vector on"
                     + "bow without normalizing terms");
-                return null;
             }
             return GetGeneralizedVector(document, VectorType.NORMTF);
         }
 
         public double[] GetDocNormTFTimesIDFVector(BagOfWords document)
         {
-            if (!IDFed || document.NormalizedTF)
+            if (!IDFed || !document.NormalizedTF)
             {
-                Console.WriteLine("Error BagOfWords::GetDocNormTimeIDFVector, atttempt to get feature" +
+                throw new Exception("Error BagOfWords::GetDocNormTimeIDFVector, atttempt to get feature" +
                     " vector on IDFs when IDFs not set or document TF not normalized");
-                return null;
             }
             return GetGeneralizedVector(document, VectorType.DOCNORMTF_IDF);
         }
@@ -173,9 +171,8 @@ namespace Assignment1
         {
             if (!Indexed)
             {
-                Console.WriteLine("Error BagOfWords, attempt to get vector on unindexed"
+                throw new Exception("Error BagOfWords, attempt to get vector on unindexed"
                     + "BOW");
-                return true;
             }
             return false;
         }

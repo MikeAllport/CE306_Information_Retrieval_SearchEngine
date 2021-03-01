@@ -66,8 +66,8 @@ namespace Assignment1
                 IndexIDDict[entry.Key] = pipeline;
                 CorpusBOW.AddTerms(pipeline.Tokens);
             }
+            CorpusBOW.AddNormalizedTermFreq();
             CorpusBOW.IndexWords();
-            _corpusBOW.AddNormalizedTermFreq();
         }
 
         /// <summary>
@@ -82,7 +82,8 @@ namespace Assignment1
                 pipe.Value.RemoveTokens(stopWords);
             }
             CorpusBOW.RemoveTerms(stopWords);
-            _corpusBOW.AddNormalizedTermFreq();
+            CorpusBOW.AddNormalizedTermFreq();
+            CorpusBOW.IndexWords();
         }
 
         /// <summary>
@@ -121,7 +122,8 @@ namespace Assignment1
                 idPipePair.Value.Stem();
                 CorpusBOW.AddTerms(idPipePair.Value.Tokens);
             }
-            _corpusBOW.AddNormalizedTermFreq();
+            CorpusBOW.AddNormalizedTermFreq();
+            CorpusBOW.IndexWords();
         }
 
         public void GeneratePhrases()
@@ -133,7 +135,8 @@ namespace Assignment1
                 idPipePair.Value.MakeNGrams();
                 CorpusBOW.AddTerms(idPipePair.Value.Tokens);
             }
-            _corpusBOW.AddNormalizedTermFreq();
+            CorpusBOW.AddNormalizedTermFreq();
+            CorpusBOW.IndexWords();
         }
 
         /// <summary>
@@ -152,26 +155,17 @@ namespace Assignment1
             CorpusBOW.IDFed = true;
         }
 
-        public void CosineSimilarity(BagOfWords doc1, BagOfWords doc2)
+        public double CosineSimilarity(BagOfWords doc1, BagOfWords doc2)
         {
-
-        }
-
-        public float[] GetInnerProductNormalized(BagOfWords document)
-        {
-
-            return new float[2];
-        }
-
-        public float[] GetIDFWeightedVector(BagOfWords document)
-        {
-/*            List<string> termsInDoc =
-                (from KeyValuePair<string, WordStats> termStatsPair
-                in document.Terms
-                select termStatsPair.Key
-                ).ToList();
-            double[] docNormTFs = document.GetNormalizedTFVector(termsInDoc);*/
-            return null;
+            // nominator calcs
+            double[] doc1TFIDFVector = CorpusBOW.GetDocNormTFTimesIDFVector(doc1);
+            double[] doc2TFIDFVector = CorpusBOW.GetDocNormTFTimesIDFVector(doc2);
+            double innerProduct = VectorOps.Multiplication(doc1TFIDFVector, doc2TFIDFVector).Sum();
+            //denominator calcs
+            double doc1Sqrt = Math.Sqrt(VectorOps.Multiplication(doc1TFIDFVector, doc1TFIDFVector).Sum());
+            double doc2Sqrt = Math.Sqrt(VectorOps.Multiplication(doc2TFIDFVector, doc2TFIDFVector).Sum());
+            double denominator = doc1Sqrt * doc2Sqrt;
+            return innerProduct / denominator;
         }
     }
 }

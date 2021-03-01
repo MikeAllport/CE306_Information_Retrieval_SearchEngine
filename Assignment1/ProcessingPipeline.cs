@@ -213,6 +213,7 @@ namespace Assignment1
         /// </summary>
         public void MakeNGrams()
         {
+            List<string> ngrams = new List<string>();
             for(int ngramFirstWord = 0; ngramFirstWord + _ngramNum <= _tokens.Count; ngramFirstWord++)
             {
                 string ngram = "";
@@ -221,8 +222,9 @@ namespace Assignment1
                     ngram += _tokens[nextNgramWord] + NGRAM_DELIM;
                 }
                 ngram = ngram.Substring(0, ngram.Length - NGRAM_DELIM.Length);
-                _tokens.Add(ngram);
+                ngrams.Add(ngram);
             }
+            _tokens.AddRange(ngrams);
             ResetTerms();
         }
 

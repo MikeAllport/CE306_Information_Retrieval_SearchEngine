@@ -27,15 +27,14 @@ namespace Assignment1
         {
             this.gui = gui;
         }
-        
+
         /// <summary>
         /// Assignment Step 1 - Full Indexing
-        /// This function parses the csv contents of a given URI, given the uri points to a correctly
-        /// formatted movie index csv, through usage of MovieIndexService. It then establishes a 
+        /// This function parses the csv contents of a given URI through usage of MovieIndexService,
+        /// poviding uri points to a correctly formatted movie index csv. It then establishes a 
         /// connection to ElasticSearch, and uses the ESService to document all parsed MovieIdndexes.
-        /// Upon indexing, response strings of ES's current indexes following indexing and a query is made
-        /// to ES for an index using MatchAll with the result deserialized as json to be output
-        /// to the gui console.
+        /// Upon indexing, response strings of ES's current indexes are printed to gui and a query is made
+        /// to ES for an index using MatchAll with the result output to gui using json serialization
         /// </summary>
         /// <param name="uri">The full absolute path to a file, must be a MovieIndex csv as per assignment</param>
         public void PerformFullIndexing(string uri)

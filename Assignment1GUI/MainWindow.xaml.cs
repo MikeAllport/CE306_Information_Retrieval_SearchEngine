@@ -57,7 +57,7 @@ namespace Assignment1GUI
             DoAction(program.PerformStemming);
         }
 
-        // Code adapted from:
+        // Allows gui repaint during slow loading actions Code adapted from:
         // https://stackoverflow.com/questions/818911/force-a-wpf-control-to-refresh
         // @Remco
         private void DoAction(PerformActionNoArg method)
@@ -78,7 +78,7 @@ namespace Assignment1GUI
             thread.Start();
         }
 
-        // Code adapted from:
+        // Allows gui repaint during slow loading actions Code adapted from:
         // https://stackoverflow.com/questions/818911/force-a-wpf-control-to-refresh
         // @Remco
         private void DoAction(PerformAction1Arg method, string arg)

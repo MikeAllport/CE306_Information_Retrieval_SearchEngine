@@ -69,13 +69,6 @@ namespace Assignment1_unitTests
             }
         }
 
-        [TestMethod]
-        public void GeneralTestVectorMultiplication()
-        {
-            double[] arr = { 2, 3, 4 };
-            double[] expectedResult = { 4, 9, 16 };
-            double[] test = arr * arr;
-        }
     }
 }
 
