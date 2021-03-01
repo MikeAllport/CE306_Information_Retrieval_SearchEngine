@@ -232,16 +232,12 @@ namespace Assignment1
             ResetTerms();
         }
 
-        public void SelectTopPercentKeywords(double percentage)
+        /// <summary>
+        /// Adds the current tokens to keywords list
+        /// </summary>
+        public void AddTokensToKeywords()
         {
-            percentage = Math.Min(1, percentage); // ensure top 100% words chosen if percentage > 1
-            _keywords = TermsAndStats.Terms.
-                Select(termStatPair => termStatPair).
-                OrderByDescending(termStatPair => termStatPair.Value.TFIDF).
-                ToList().
-                Take((int)(TermsAndStats.Terms.Count * percentage)).
-                Select(termStatPair => termStatPair.Key).
-                ToList();
+            _keywords.AddRange(_tokens);
         }
 
         /// <summary>

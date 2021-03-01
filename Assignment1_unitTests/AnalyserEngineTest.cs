@@ -12,51 +12,31 @@ namespace Assignment1_unitTests
     [TestClass]
     public class TestAnalyserEngine
     {
-        Program prog = new Program(null);
-        public TestAnalyserEngine()
+        static Program prog = new Program(null);
+        static BagOfWords bow = new BagOfWords();
+        // documents
+        static List<string> wordlist1 = new List<string>() { "hey", "there", "hey", "1" };
+        static List<string> wordlist2 = new List<string>() { "hey", "2" };
+        static List<string> wordlist3 = new List<string>() { "this", "should", "not", "match", "doc1" };
+        static List<string> wordlist4 = new List<string>();
+        static BagOfWords document; // will be a document with worldlist1 terms
+        static BagOfWords doc2; // will be a document with wordlist3 terms
+        static BagOfWords doc3; // will be a document with worldlist3 + worldlist2 terms
+        //query
+        static List<string> query = new List<string>() { "hey", "there" };
+        static BagOfWords querDoc;
+        static AnalyserEngine engine;
+
+        [ClassInitialize]
+        public static void ClassInit(TestContext context)
         {
             prog.PerformFullIndexing(Program.DEFAULT_DATA_FILE, 50);
             prog.PerformTokenization();
-        }
-
-        [TestMethod]
-        public void TestIDFSelection()
-        {
-            prog.AnalyserEngine.RemoveStopWords();
-            prog.AnalyserEngine.GeneratePhrases();
-            prog.AnalyserEngine.RemoveVeryInfrequentWords();
-            prog.AnalyserEngine.CalculateIDFs();
-        }
-    }
-}
-/*
-
-namespace Assignment1_unitTests
-{
-    [TestClass]
-    public class TestAnalyserEngine
-    {
-        BagOfWords bow = new BagOfWords();
-        // documents
-        List<string> wordlist1 = new List<string>() { "hey", "there", "hey", "1" };
-        List<string> wordlist2 = new List<string>() { "hey", "2" };
-        List<string> wordlist3 = new List<string>() { "this", "should", "not", "match", "doc1" };
-        List<string> wordlist4 = new List<string>();
-        BagOfWords document; // will be a document with worldlist1 terms
-        BagOfWords doc2; // will be a document with wordlist3 terms
-        BagOfWords doc3; // will be a document with worldlist3 + worldlist2 terms
-        //query
-        List<string> query = new List<string>() { "hey", "there" };
-        BagOfWords querDoc;
-        AnalyserEngine engine;
-        public TestAnalyserEngine()
-        {
             querDoc = BagOfWords.WithWords(query);
-            querDoc.AddNormalizedTermFreq();
             bow.AddTerms(wordlist1);
             bow.AddTerms(wordlist2);
             string cast = "";
-            for(int i = 0; i < wordlist1.Count; ++i)
+            for (int i = 0; i < wordlist1.Count; ++i)
             {
                 cast += wordlist1[i] + " ";
                 if (i < wordlist2.Count)
@@ -81,14 +61,8 @@ namespace Assignment1_unitTests
             engine.GeneratePhrases();
             engine.CalculateIDFs();
             document = BagOfWords.WithWords(wordlist1);
-            document.AddNormalizedTermFreq();
-            document.IndexWords();
             doc2 = BagOfWords.WithWords(wordlist3);
-            doc2.AddNormalizedTermFreq();
-            doc2.IndexWords();
             doc3 = BagOfWords.WithWords(wordlist4);
-            doc3.AddNormalizedTermFreq();
-            doc3.IndexWords();
         }
 
         [TestMethod]
@@ -118,7 +92,14 @@ namespace Assignment1_unitTests
             double similarity = engine.CosineSimilarity(querDoc, doc3);
             Assert.IsTrue(similarity > 0);
         }
+
+        //[TestMethod]
+        public void TestIDFSelection()
+        {
+            prog.AnalyserEngine.RemoveStopWords();
+            prog.AnalyserEngine.GeneratePhrases();
+            prog.AnalyserEngine.RemoveVeryInfrequentWords();
+            prog.AnalyserEngine.CalculateIDFs();
+        }
     }
 }
-
-*/

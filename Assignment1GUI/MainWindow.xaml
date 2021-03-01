@@ -24,12 +24,26 @@
         <Button x:Name="Comp2But" HorizontalAlignment="Left" Margin="145,9,0,0" VerticalAlignment="Top" Height="40" Width="115" Click="OnComp2Click">
             <TextBlock TextAlignment="Center"><Run Text="Component 2"/><LineBreak/><Run Text="Tokenize"/></TextBlock>
         </Button>
-        <Button x:Name="Comp4But" HorizontalAlignment="Left" Margin="405,9,0,0" VerticalAlignment="Top" Height="40" Width="115" Click="OnComp4Click">
-            <TextBlock TextAlignment="Center"><Run Text="Component 4"/><LineBreak/><Run Text="Keyword Stemming"/></TextBlock>
-        </Button>
         <Button x:Name="Comp3But" HorizontalAlignment="Left" Margin="275,9,0,0" VerticalAlignment="Top" Height="40" Width="115" Click="OnComp3Click">
             <TextBlock TextAlignment="Center"><Run Text="Component 4"/><LineBreak/><Run Text="Keyword Selection"/></TextBlock>
         </Button>
+        <Button x:Name="Comp4But" HorizontalAlignment="Left" Margin="405,9,0,0" VerticalAlignment="Top" Height="40" Width="115" Click="OnComp4Click">
+            <TextBlock TextAlignment="Center"><Run Text="Component 3"/><LineBreak/><Run Text="Keyword Stemming"/></TextBlock>
+        </Button>
 
+        <Button x:Name="Comp5But" HorizontalAlignment="Left" Margin="955,199,0,0" VerticalAlignment="Top" Height="40" Width="115" Click="OnComp5Click">
+            <TextBlock TextAlignment="Center"><Run Text="Search"/></TextBlock>
+        </Button>
+
+        <Grid Name="MCGrid" Margin="920,106,40,375" MinHeight="28">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition />
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="28" />
+            </Grid.RowDefinitions>
+            <TextBlock x:Name="QueryFieldHint" Height="28" Grid.Row="0" Grid.Column="0" TextAlignment="Left" Background="White" Foreground="LightGray" Padding="6"  FontSize="14" VerticalAlignment="Top" >Query</TextBlock>
+            <TextBox x:Name="QueryField" VerticalContentAlignment="Center" HorizontalContentAlignment="left" Height="28" Grid.Row="0" Grid.Column="0" TextWrapping="Wrap" Background="Transparent" TextChanged="QueryBoxTextChanged"/>
+        </Grid>
     </Grid>
 </Window>

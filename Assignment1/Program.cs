@@ -49,6 +49,7 @@ namespace Assignment1
                 // creates data services
                 var _miService = new MovieIndexService<MovieIndex>();
                 var _esService = new ElasticService<MovieIndexService<MovieIndex>, MovieIndex>(_miService);
+                _esService.InitDB();
                 _miService.NumDocuments = numDocs;
 
                 // parses csv files
@@ -93,6 +94,7 @@ namespace Assignment1
                 // creates database services
                 var tokenizedService = new MovieIndexServiceProcessed<MovieIndexTokenized>();
                 var elasticService = new ElasticService<MovieIndexService<MovieIndexTokenized>, MovieIndexTokenized>(tokenizedService);
+                elasticService.InitDB();
 
                 //processes documents and uploads to ElasticSearch
                 engine.GenerateTokenizatedPipes();
@@ -126,13 +128,14 @@ namespace Assignment1
             // creates database services
             var keywordedService = new MovieIndexServiceProcessed<MovieIndexKeyWords>();
             var elasticService = new ElasticService<MovieIndexService<MovieIndexKeyWords>, MovieIndexKeyWords>(keywordedService);
+            elasticService.InitDB();
 
-            // processes documents for this step
+            // processes documents for this steps
             engine.RemoveStopWords();
             engine.GeneratePhrases();
             engine.RemoveVeryInfrequentWords();
             engine.CalculateIDFs();
-            engine.SelectKeyWords();
+            engine.AddKeywordsToPipes();
 
             // indexes documents and uploads to ElasticSearch
             var indexedDocs = SortedIndexDictToList(CreateMovieIndexChildClasses(keywordedService));
@@ -157,6 +160,7 @@ namespace Assignment1
             // instantiates data services
             var tokenizedService = new MovieIndexServiceProcessed<MovieIndexKeyWordStemmed>();
             var elasticService = new ElasticService<MovieIndexService<MovieIndexKeyWordStemmed>, MovieIndexKeyWordStemmed>(tokenizedService);
+            elasticService.InitDB();
 
             // creates indexes with original non stemmed keywords
             SortedDictionary<int, MovieIndexKeyWordStemmed> results = CreateMovieIndexChildClasses(tokenizedService);
@@ -181,6 +185,35 @@ namespace Assignment1
                 result += document.Serialize() + "\n";
             }
             gui?.AddConsoleMessage(result);
+        }
+
+        public void PerformSearch(string searchString, FieldName FieldType)
+        {
+            var keywordedQueryPipe = new ProcessingPipeline.Builder(searchString).
+                    SplitBulletPoints().
+                    SplitSentences().
+                    RemovePunctuation().
+                    Normalize().
+                    Tokenize().
+                    Build();
+            keywordedQueryPipe.NGramNum = 3;
+            keywordedQueryPipe.MakeNGrams();
+            keywordedQueryPipe.AddTokensToKeywords();
+            keywordedQueryPipe.StemKeywords();
+
+            var rawProcessedQueryPipe = new ProcessingPipeline.Builder(searchString).
+                    SplitBulletPoints().
+                    SplitSentences().
+                    RemovePunctuation().
+                    Normalize().
+                    Tokenize().
+                    Build();
+
+            // instantiates data services
+            var tokenizedService = new MovieIndexServiceProcessed<MovieIndexKeyWords>();
+            var elasticService = new ElasticService<MovieIndexService<MovieIndexKeyWords>, MovieIndexKeyWords>(tokenizedService);
+
+            List<MovieIndexKeyWords> results1 = elasticService.KeywordQuery<MovieIndexKeyWords>(keywordedQueryPipe.Keywords);
         }
 
         /// <summary>

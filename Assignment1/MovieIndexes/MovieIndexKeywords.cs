@@ -10,7 +10,7 @@ using Nest;
 namespace Assignment1
 {
     [JsonConverter(typeof(MovieIndexKeyWords))]
-    class MovieIndexKeyWords : MovieIndex
+    public class MovieIndexKeyWords : MovieIndex
     {
         // json attribute name constants
         protected const string KEYWORD_KEY = "Keywords";

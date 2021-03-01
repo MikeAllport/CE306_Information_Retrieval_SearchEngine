@@ -9,6 +9,10 @@ using Nest;
 
 namespace Assignment1
 {
+    public enum FieldName
+    {
+        ID, RELEASEYEAR, TITLE, ORIGIN, DIRECTOR, CAST, GENRE, WIKI, PLOT
+    }
     [JsonConverter(typeof(MovieIndex))]
     public class MovieIndex: 
         JsonConverter,

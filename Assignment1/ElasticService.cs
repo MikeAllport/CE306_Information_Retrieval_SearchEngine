@@ -36,21 +36,25 @@ namespace Assignment1
         /// </summary>
         public ElasticService(T indexService)
         {
-            this._indexService = indexService;
-            var settings = new ConnectionSettings(URI);
-            settings.DefaultIndex(indexService.GetIndexTitle());
+            this._indexService = indexService; var settings = new ConnectionSettings(URI);
+            settings.DefaultIndex(this._indexService.GetIndexTitle());
             settings.ThrowExceptions(true);
             settings.PrettyJson(true);
             client = new ElasticClient(settings);
+        }
+
+        public void InitDB()
+        {
             // TODO: insert try catch for Elasticsearch.Net.ElasticsearchClientException
             try
             {
-                if (client.Indices.Exists(indexService.GetIndexTitle()).Exists)
+                if (client.Indices.Exists(this._indexService.GetIndexTitle()).Exists)
                 {
-                    client.Indices.Delete(indexService.GetIndexTitle());
+                    client.Indices.Delete(this._indexService.GetIndexTitle());
                 }
-                indexService.CreateIndex(client);
-            } catch (Elasticsearch.Net.ElasticsearchClientException)
+                this._indexService.CreateIndex(client);
+            }
+            catch (Elasticsearch.Net.ElasticsearchClientException)
             {
                 throw new Exception($"PerformIndexing::{this.GetType().Name} Could not establish database connection");
             }
@@ -70,6 +74,28 @@ namespace Assignment1
             );
             return response.Documents;
         }
+
+        public List<Q> KeywordQuery<Q>(List<string> terms) where Q:
+            MovieIndexKeyWords
+        {
+            List<Q> results = new List<Q>();
+            foreach (string term in terms)
+            {
+                var response = client.Search<Q>(s => s
+                    .Query(q => q
+                        .Term(t => t
+                            .Field(field => field.KeyWords)
+                            .Value(term)
+                        )
+                    ));
+                foreach(var result in response.Documents)
+                {
+                    results.Add(result);
+                }
+            }
+            return results;
+        }
+
 
         private string BasicWebRequest(string request)
         {

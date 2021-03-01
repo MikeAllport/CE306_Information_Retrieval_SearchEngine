@@ -35,7 +35,7 @@ namespace Assignment1
 
     public class AnalyserEngine
     {
-        AnalyserEngineSettings settings;
+        public AnalyserEngineSettings settings;
         private IGUIAdapter.Adapter gui;
         public Dictionary<int, ProcessingPipeline> IndexIDDict { get; } = new Dictionary<int, ProcessingPipeline>();
         public Dictionary<int, MovieIndex> UnProcessedIndexes { get; } = new Dictionary<int, MovieIndex>();
@@ -181,52 +181,15 @@ namespace Assignment1
         }
 
         /// <summary>
-        /// Generates TFIDFs for each pipe/document and retains only topNPercent of keywords
-        /// i.e top 80% keywords of 100 keywords, sort words based on highest score, retain top 80 words
+        /// Calls each pipe to place tokens into their _keywords list
         /// </summary>
-        public void SelectKeyWords()
+        public void AddKeywordsToPipes()
         {
-            GenerateTFIDFs();
-            ExtractTopPercentageKeywords();
-        }
-
-        /// <summary>
-        /// Assigns IDF's for all terms in CorpusBOW, then calls all pipes BOW's to assign TFIDF for their
-        /// terms
-        /// </summary>
-        public void GenerateTFIDFs()
-        {
-            CalculateIDFs();
-            foreach (var pipeline in IndexIDDict)
+            foreach(KeyValuePair<int, ProcessingPipeline> idPipePair in IndexIDDict)
             {
-                pipeline.Value.TermsAndStats.SetTFIDF(CorpusBOW);
+                idPipePair.Value.AddTokensToKeywords();
             }
         }
-
-        /// <summary>
-        /// Calls each pipe to remove words from Keywords based on top percentage to keep
-        /// </summary>
-        public void ExtractTopPercentageKeywords()
-        {
-            foreach (var pipeline in IndexIDDict)
-            {
-                pipeline.Value.SelectTopPercentKeywords(settings.topNPercentKeywords);
-            }
-        }
-
-        /// <summary>
-        /// 
-        /// </summary>
-        public void CalculateIDFs()
-        {
-            foreach (var term in CorpusBOW.Terms)
-            {
-                double IDF = Math.Log(IndexIDDict.Count / (float)CorpusBOW.Terms[term.Key].DocFreq);
-                CorpusBOW.Terms[term.Key].IDF = IDF;
-            }
-            CorpusBOW.IDFed = true;
-        }
-
 
         public void GenerateKeywordStems()
         {
@@ -236,17 +199,38 @@ namespace Assignment1
             }
         }
 
-/*        public double CosineSimilarity(BagOfWords doc1, BagOfWords doc2)
+
+        /// <summary>
+        /// Assigns each word in corpus's bow their associated IDF value
+        /// Knowledge for calculating IDF gained from lectures, but combined with:
+        /// https://janav.wordpress.com/2013/10/27/tf-idf-and-cosine-similarity/
+        /// This introduces normalization such that all TFIDFs will fall between 1 and 0, and as
+        /// such multiplying a fraction by a fraction would lead to incorrect results so will always
+        /// need to be 1+
+        /// </summary>
+        public void CalculateIDFs()
         {
+            foreach (var term in CorpusBOW.Terms)
+            {
+                double IDF = 1 + Math.Log(IndexIDDict.Count / (float)CorpusBOW.Terms[term.Key].DocFreq);
+                CorpusBOW.Terms[term.Key].IDF = IDF;
+            }
+            CorpusBOW.IDFed = true;
+        }
+
+        public double CosineSimilarity(BagOfWords doc1, BagOfWords doc2)
+        {
+            if (!CorpusBOW.IDFed)
+                CalculateIDFs();
             // nominator calcs
-            double[] doc1TFIDFVector = CorpusBOW.GetDocNormTFTimesIDFVector(doc1);
-            double[] doc2TFIDFVector = CorpusBOW.GetDocNormTFTimesIDFVector(doc2);
+            double[] doc1TFIDFVector = CorpusBOW.GetDocNormTFIDFVector(doc1);
+            double[] doc2TFIDFVector = CorpusBOW.GetDocNormTFIDFVector(doc2);
             double innerProduct = VectorOps.Multiplication(doc1TFIDFVector, doc2TFIDFVector).Sum();
             //denominator calcs
             double doc1Sqrt = Math.Sqrt(VectorOps.Multiplication(doc1TFIDFVector, doc1TFIDFVector).Sum());
             double doc2Sqrt = Math.Sqrt(VectorOps.Multiplication(doc2TFIDFVector, doc2TFIDFVector).Sum());
             double denominator = doc1Sqrt * doc2Sqrt;
             return innerProduct / denominator;
-        }*/
+        }
     }
 }

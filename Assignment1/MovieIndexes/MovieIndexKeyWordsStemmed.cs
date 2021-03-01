@@ -44,14 +44,6 @@ namespace Assignment1
         protected void SetWriter(MovieIndexKeyWordStemmed index, JsonWriter writer, JsonSerializer serializer)
         {
             base.SetWriter(index, writer, serializer);
-/*            index.KeyWords.Sort();
-            index.KeywordsPostStem.Sort();*/
-            writer.WritePropertyName(KEYWORD_KEY + "PreStem");
-            writer.Formatting = Formatting.None;
-            writer.WriteStartArray();
-            foreach (var keyword in index.KeyWords)
-                serializer.Serialize(writer, keyword);
-            writer.WriteEndArray();
             writer.Formatting = Formatting.Indented;
             writer.WritePropertyName(KEYWORDPOST_KEY);
             writer.Formatting = Formatting.None;

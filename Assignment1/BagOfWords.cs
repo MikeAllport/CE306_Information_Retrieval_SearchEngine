@@ -17,13 +17,14 @@ namespace Assignment1
     /// </summary>
     public class BagOfWords
     {
-/*        enum VectorType
+        enum VectorType
         {
             IDF,
             NORMTF,
             EXISTS,
             DOCNORMTF_IDF
-        }*/
+        }
+
         private SortedDictionary<string, WordStats> _terms = new SortedDictionary<string, WordStats>();
         public SortedDictionary<string, WordStats> Terms { get { return _terms; } }
 
@@ -67,6 +68,10 @@ namespace Assignment1
             IDFed = false;
         }
 
+        /// <summary>
+        /// Removes all given terms from the BOW's Term dictionary
+        /// </summary>
+        /// <param name="terms">List of words to be removed</param>
         public void RemoveTerms(List<string> terms)
         {
             foreach(var term in terms)
@@ -74,81 +79,68 @@ namespace Assignment1
                 if (Terms.ContainsKey(term))
                     Terms.Remove(term);
             }
+            Indexed = false;
+            NormalizedTF = false;
         }
 
-
-        public void SetTFIDF(BagOfWords corpus)
+        public double[] GetDocNormTFIDFVector(BagOfWords documentsBOW)
         {
-            Terms.Select((termStatsPair) =>
-            {
-                termStatsPair.Value.TFIDF =
-                termStatsPair.Value.TermFreq * corpus.Terms[termStatsPair.Key].IDF;
-                return true;
-            }).ToList();
-        }
-
- /*       /// <summary>
-        /// Creates a feature vector of 1's and 0s if term exists in bow
-        /// </summary>
-        /// <param name="inputTerms">input words to get feature from</param>
-        /// <returns>double array term vector</returns>
-        public double[] GetTermVector(BagOfWords document)
-        {
-            return GetGeneralizedVector(document, VectorType.EXISTS);
+            if (!documentsBOW.NormalizedTF)
+                documentsBOW.AssignTFNorms();
+            if (!IDFed)
+                throw new Exception("Error BagOfWords::GetGeneralizedVector, attempt to retrieve TFIDF on "
+                    + "BOW without having assigned IDFs to corpus");
+            return GetGeneralizedVector(documentsBOW, VectorType.DOCNORMTF_IDF);
         }
 
         /// <summary>
-        /// Creates a feature vector of IDF's
+        /// Assigns the terms element location to each term in Terms, this is used for creating
+        /// feature vectors to associate element location to term
         /// </summary>
-        /// <param name="inputTerms">input words to get feature from</param>
-        /// <returns>double array term vector</returns>
-        public double[] GetIDFTermVector(BagOfWords document)
+        private void AssignIndexes()
         {
-            return GetGeneralizedVector(document, VectorType.IDF);
-        }
-
-        /// <summary>
-        /// Creates a feature vector Normalized term frequencies
-        /// </summary>
-        /// <param name="inputTerms">input words to get feature from</param>
-        /// <returns>double array term vector</returns>
-        public double[] GetNormalizedTFVector(BagOfWords document)
-        {
-            if (!NormalizedTF)
+            for(int i = 0; i < Terms.Count; ++i)
             {
-                throw new Exception("Error BagOfWords::GetNormalizedTFVector, attempt to get vector on"
-                    + "bow without normalizing terms");
+                Terms.ElementAt(i).Value.Index = i;
             }
-            return GetGeneralizedVector(document, VectorType.NORMTF);
+            Indexed = true;
         }
 
-        public double[] GetDocNormTFTimesIDFVector(BagOfWords document)
+
+        /// <summary>
+        /// Assigns normalized term frequency to each word in Terms
+        /// normalized is TF/NumTermsInDoc
+        /// </summary>
+        /// Knowledge for normalization gained from:
+        /// https://janav.wordpress.com/2013/10/27/tf-idf-and-cosine-similarity/
+        /// This makes it so TFIDF does not favour documents with high amount of words
+        private void AssignTFNorms()
         {
-            if (!IDFed || !document.NormalizedTF)
+            foreach(KeyValuePair<string, WordStats> termStatPair in Terms)
             {
-                throw new Exception("Error BagOfWords::GetDocNormTimeIDFVector, atttempt to get feature" +
-                    " vector on IDFs when IDFs not set or document TF not normalized");
+                WordStats termStats = termStatPair.Value;
+                termStats.NormalizedTF = termStats.TermFreq / (double)Terms.Count;
             }
-            return GetGeneralizedVector(document, VectorType.DOCNORMTF_IDF);
+            NormalizedTF = true;
         }
 
         /// <summary>
-        /// Creates a feature vector for a given type of features dependent upon
-        /// VectorType enum
+        /// Creates a feature vector based on a corpus's complete words (this instance) such that feature 
+        /// vector will be of length corpusBOW.Terms.Length
         /// </summary>
-        /// <param name="inputTerms">input words to get feature from</param>
+        /// <param name="inputTerms">The document top be compared</param>
         /// <param name="type">Enum specifying which type of feature vector to return</param>
         /// <returns>double array term vector</returns>
-        private double[] GetGeneralizedVector(BagOfWords inputBOW, VectorType type)
+        private double[] GetGeneralizedVector(BagOfWords documentBOW, VectorType type)
         {
-            if (NotIndexed())
-                return null;
+            if (!Indexed)
+                AssignIndexes();
             double[] result = new double[Terms.Count];
-            for (int i = 0; i < inputBOW.Terms.Count; ++i)
+            for (int i = 0; i < Terms.Count; ++i)
             {
-                string term = inputBOW.Terms.ElementAt(i).Key;
-                if (Terms.ContainsKey(term))
-                    switch(type)
+                string term = Terms.ElementAt(i).Key;
+                if (documentBOW.Terms.ContainsKey(term))
+                    switch (type)
                     {
                         case VectorType.IDF:
                             result[Terms[term].Index] = Terms[term].IDF;
@@ -157,24 +149,14 @@ namespace Assignment1
                             result[Terms[term].Index] = 1.0;
                             break;
                         case VectorType.NORMTF:
-                            result[Terms[term].Index] = Terms[term].NormalizedTermFreq;
+                            result[Terms[term].Index] = documentBOW.Terms[term].NormalizedTF;
                             break;
                         case VectorType.DOCNORMTF_IDF:
-                            result[Terms[term].Index] = Terms[term].IDF * inputBOW.Terms[term].NormalizedTermFreq;
+                            result[Terms[term].Index] = Terms[term].IDF * documentBOW.Terms[term].NormalizedTF;
                             break;
                     }
             }
             return result;
         }
-
-        private bool NotIndexed()
-        {
-            if (!Indexed)
-            {
-                throw new Exception("Error BagOfWords, attempt to get vector on unindexed"
-                    + "BOW");
-            }
-            return false;
-        }*/
     }
 }
