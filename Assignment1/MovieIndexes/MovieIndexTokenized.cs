@@ -26,9 +26,9 @@ namespace Assignment1
 
         public MovieIndexTokenized(MovieIndex other, ProcessingPipeline pipe): base(other)
         {
-            this.Tokens = pipe.Tokens;
-            this.Sentences = pipe.Sentences;
-            this.BulletPoints = pipe.BulletPoints;
+            this.Tokens.AddRange(pipe.Tokens);
+            this.Sentences.AddRange(pipe.Sentences);
+            this.BulletPoints.AddRange(pipe.BulletPoints);
         }
 
         public MovieIndexTokenized() : base() { }
@@ -48,10 +48,11 @@ namespace Assignment1
         protected void SetWriter(MovieIndexTokenized index, JsonWriter writer, JsonSerializer serializer)
         {
             base.SetWriter(index, writer, serializer);
+/*            index.Tokens.Sort();*/
             writer.WritePropertyName(TOKENS_KEY);
             writer.Formatting = Formatting.None;
             writer.WriteStartArray();
-            foreach (var token in index.Tokens)
+            foreach (var token in index.Tokens.Distinct())
                 serializer.Serialize(writer, token);
             writer.WriteEndArray();
             writer.Formatting = Formatting.Indented;

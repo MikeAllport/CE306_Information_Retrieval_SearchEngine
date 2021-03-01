@@ -28,6 +28,7 @@ namespace Assignment1
         private int _currentValueIndex = 0;
         private int _currentLine = 0;
         private int _totalLines = 0;
+        private int _currentEntityStartIndex = 0;
 
         /**
          * Basic constructor that  instantiates the headers, pointers, and local variables

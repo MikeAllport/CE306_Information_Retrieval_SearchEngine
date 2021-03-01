@@ -53,11 +53,18 @@ namespace Assignment1GUI
 
         private void OnComp3Click(object sender, RoutedEventArgs e)
         {
-            AddConsoleMessage("Stemming documents, please wait a moment...", GUIColor.ERROR_COLOR);
+            AddConsoleMessage("Selecting Keywords for documents, this may take a few minutes...", GUIColor.ERROR_COLOR);
+            DoAction(program.PerformKeywordSelection);
+        }
+
+        private void OnComp4Click(object sender, RoutedEventArgs e)
+        {
+            AddConsoleMessage("Stemming Keywords in documents, please wait a moment...", GUIColor.ERROR_COLOR);
             DoAction(program.PerformStemming);
         }
 
-        // Allows gui repaint during slow loading actions Code adapted from:
+        // Allows gui repaint during slow loading actions
+        // Code adapted from:
         // https://stackoverflow.com/questions/818911/force-a-wpf-control-to-refresh
         // @Remco
         private void DoAction(PerformActionNoArg method)
@@ -78,7 +85,8 @@ namespace Assignment1GUI
             thread.Start();
         }
 
-        // Allows gui repaint during slow loading actions Code adapted from:
+        // Allows gui repaint during slow loading actions
+        // Code adapted from:
         // https://stackoverflow.com/questions/818911/force-a-wpf-control-to-refresh
         // @Remco
         private void DoAction(PerformAction1Arg method, string arg)

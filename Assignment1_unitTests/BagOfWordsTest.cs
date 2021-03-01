@@ -29,15 +29,7 @@ namespace Assignment1_unitTests
             Assert.AreEqual(false, bow.Indexed);
         }
 
-        [TestMethod]
-        public void TestIndexed()
-        {
-            bow.IndexWords();
-            Assert.AreEqual(0, bow.Terms["1"].Index);
-            Assert.AreEqual(2, bow.Terms["hey"].Index);
-        }
-
-        [TestMethod]
+/*        [TestMethod]
         public void TestTermVectorExistsSucc()
         { 
             bow.IndexWords();
@@ -68,7 +60,7 @@ namespace Assignment1_unitTests
                 Assert.AreEqual(arr[i], bowArr[i]);
             }
         }
-
+*/
     }
 }
 

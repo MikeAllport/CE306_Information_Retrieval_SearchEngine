@@ -52,7 +52,7 @@ namespace Assignment1
                 indexService.CreateIndex(client);
             } catch (Elasticsearch.Net.ElasticsearchClientException)
             {
-                throw new Exception($"PerferomIndexing::{this.GetType().Name} Could not establish database connection");
+                throw new Exception($"PerformIndexing::{this.GetType().Name} Could not establish database connection");
             }
         }
 

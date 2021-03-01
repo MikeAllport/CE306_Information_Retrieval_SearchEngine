@@ -19,15 +19,17 @@ namespace Assignment1
         public int StopWordN;
         public bool UseNgramPhraseDetection;
         public int NGramNum;
+        public double topNPercentKeywords;
         public AnalyserEngineSettings(
             StopWordDetectionType type = LOG_MIDPOINT,
             int StopWordN = -1,
             bool UseNgram = true,
-            int NGramNum = 3
+            int NGramNum = 3,
+            double topNPercentKeywords = 0.8
             )
         {
             this.StopType = type;  this.StopWordN = StopWordN;  this.UseNgramPhraseDetection = UseNgram;
-            this.NGramNum = NGramNum;
+            this.NGramNum = NGramNum; this.topNPercentKeywords = topNPercentKeywords;
         }
     }
 
@@ -66,15 +68,13 @@ namespace Assignment1
                 IndexIDDict[entry.Key] = pipeline;
                 CorpusBOW.AddTerms(pipeline.Tokens);
             }
-            CorpusBOW.AddNormalizedTermFreq();
-            CorpusBOW.IndexWords();
         }
 
         /// <summary>
         /// RemoveStopWords gets a generated stop word list and calls each pipe to remove the term and
         /// calls the CorpusBOW to remove the term
         /// </summary>
-        private void RemoveStopWords()
+        public void RemoveStopWords()
         {
             var stopWords = GenerateStopWords();
             foreach (var pipe in IndexIDDict)
@@ -82,9 +82,58 @@ namespace Assignment1
                 pipe.Value.RemoveTokens(stopWords);
             }
             CorpusBOW.RemoveTerms(stopWords);
-            CorpusBOW.AddNormalizedTermFreq();
-            CorpusBOW.IndexWords();
         }
+
+
+        /// <summary>
+        /// Removes very infrequently occuring words from corpus and pipes, ignoring infrequent words
+        /// that occure in important fields
+        /// </summary>
+        public void RemoveVeryInfrequentWords()
+        {
+            var infrequentTerms = GetInfrequentWorlist();
+            CorpusBOW.RemoveTerms(infrequentTerms);
+            foreach (var pipeID in IndexIDDict)
+            {
+                pipeID.Value.RemoveTokens(infrequentTerms);
+            }
+        }
+
+        /// <summary>
+        /// Attains list of words that appear very infrequently, 1 occurence in this occasion.
+        /// This ignores any words that appear infrequently but occur in important fields. To achieve
+        /// this a second pass through is made over all documents to retrieve important fields tokens
+        /// which may not be efficient
+        /// </summary>
+        /// <returns>List of infrequently occuring words</returns>
+        private List<string> GetInfrequentWorlist()
+        {
+            // generates list of all words that appear only once in corpus
+            var infrequentTerms = CorpusBOW.Terms.
+                Select(termStats => termStats).
+                Where(termStats => termStats.Value.TermFreq < 2).
+                Select(termStats => termStats.Key).
+                ToList();
+            // removes any words from infrequent terms that appear in important fields such as cast/title
+            // in any pipe
+            foreach (var pipeIdPair in IndexIDDict)
+            {
+                string importantTerms = "";
+                importantTerms += UnProcessedIndexes[pipeIdPair.Key].Director + " ";
+                importantTerms += UnProcessedIndexes[pipeIdPair.Key].Genre  + " ";
+                importantTerms += UnProcessedIndexes[pipeIdPair.Key].Origin + " ";
+                importantTerms += UnProcessedIndexes[pipeIdPair.Key].Title  + " ";
+                importantTerms += UnProcessedIndexes[pipeIdPair.Key].Cast   + " ";
+                var newpipe = new ProcessingPipeline.Builder(importantTerms).
+                    RemovePunctuation().
+                    Normalize().
+                    Tokenize().
+                    Build();
+                infrequentTerms = infrequentTerms.Except(newpipe.Tokens).ToList();
+            }
+            return infrequentTerms;
+        }
+
 
         /// <summary>
         /// GenerateStopWords calls the StopWordGenerator method associated with the settings detection type
@@ -114,18 +163,6 @@ namespace Assignment1
             return stopWords;
         }
 
-        public void GenerateStems()
-        {
-            _corpusBOW = new BagOfWords();
-            foreach (KeyValuePair<int, ProcessingPipeline> idPipePair in IndexIDDict)
-            {
-                idPipePair.Value.Stem();
-                CorpusBOW.AddTerms(idPipePair.Value.Tokens);
-            }
-            CorpusBOW.AddNormalizedTermFreq();
-            CorpusBOW.IndexWords();
-        }
-
         public void GeneratePhrases()
         {
             _corpusBOW = new BagOfWords();
@@ -135,27 +172,41 @@ namespace Assignment1
                 idPipePair.Value.MakeNGrams();
                 CorpusBOW.AddTerms(idPipePair.Value.Tokens);
             }
-            CorpusBOW.AddNormalizedTermFreq();
-            CorpusBOW.IndexWords();
+        }
+
+        public void SelectKeyWords()
+        {
+            CalculateIDFs();
+            foreach(var pipeline in IndexIDDict)
+            {
+                pipeline.Value.TermsAndStats.SetTFIDF(CorpusBOW);
+                pipeline.Value.SelectTopPercentKeywords(settings.topNPercentKeywords);
+            }
         }
 
         /// <summary>
         /// 
         /// </summary>
-        /// Calculations for IDF have been taken from CE306 combined with knowledge from:
-        /// https://janav.wordpress.com/2013/10/27/tf-idf-and-cosine-similarity/ 
-        /// for 1 +, such that the IDF will never take fractional values below 1
         public void CalculateIDFs()
         {
             foreach (var term in CorpusBOW.Terms)
             {
-                double IDF = 1 + Math.Log(IndexIDDict.Count / (float)CorpusBOW.Terms[term.Key].DocFreq);
+                double IDF = Math.Log(IndexIDDict.Count / (float)CorpusBOW.Terms[term.Key].DocFreq);
                 CorpusBOW.Terms[term.Key].IDF = IDF;
             }
             CorpusBOW.IDFed = true;
         }
 
-        public double CosineSimilarity(BagOfWords doc1, BagOfWords doc2)
+
+        public void GenerateKeywordStems()
+        {
+            foreach (KeyValuePair<int, ProcessingPipeline> idPipePair in IndexIDDict)
+            {
+                idPipePair.Value.StemKeywords();
+            }
+        }
+
+/*        public double CosineSimilarity(BagOfWords doc1, BagOfWords doc2)
         {
             // nominator calcs
             double[] doc1TFIDFVector = CorpusBOW.GetDocNormTFTimesIDFVector(doc1);
@@ -166,6 +217,6 @@ namespace Assignment1
             double doc2Sqrt = Math.Sqrt(VectorOps.Multiplication(doc2TFIDFVector, doc2TFIDFVector).Sum());
             double denominator = doc1Sqrt * doc2Sqrt;
             return innerProduct / denominator;
-        }
+        }*/
     }
 }

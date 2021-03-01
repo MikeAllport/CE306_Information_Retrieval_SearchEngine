@@ -61,6 +61,19 @@ namespace Assignment1
 
         public MovieIndex() { }
 
+        public MovieIndex(MovieIndex other, ProcessingPipeline pipe)
+        {
+            this.ID = other.ID;
+            this.ReleaseYear = other.ReleaseYear;
+            this.Title = other.Title;
+            this.Origin = other.Origin;
+            this.Director = other.Director;
+            this.Cast = other.Cast;
+            this.Genre = other.Genre;
+            this.Wiki = other.Wiki;
+            this.Plot = other.Plot;
+        }
+
         public string GetFullText()
         {
             return $"{ReleaseYear} {Title} {Origin} {Director} {Cast} {Genre} {Wiki} {Plot}";

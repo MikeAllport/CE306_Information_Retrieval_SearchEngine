@@ -67,30 +67,21 @@ namespace Assignment1_unitTests
         }
 
         [TestMethod]
-        public void TestStemmer()
+        public void TestNGrammer()
         {
-            string input = "beats beat beaten shrink shrank shrinking bites biting bit bitten";
-            List<string> expectedOutput = new List<string>()
-            {
-                "beat",
-                "beat",
-                "beat",
-                "shrink",
-                "shrink",
-                "shrink",
-                "bite",
-                "bite",
-                "bite",
-                "bite"
-            };
+            string input = "1 2 3 4 5";
+            var expected = new List<string>() { "1;;2", "2;;3", "3;;4", "4;;5", "1;;2;;3", "2;;3;;4", "3;;4;;5",
+            "1;;2;;3;;4", "2;;3;;4;;5" };
             ProcessingPipeline pipe = new ProcessingPipeline.Builder(input).
                 Tokenize().
                 Build();
-            pipe.Stem();
-            for (int i = 0; i < expectedOutput.Count; ++i)
+            pipe.NGramNum = 4;
+            pipe.MakeNGrams();
+            expected.Select(input =>
             {
-                Assert.AreEqual(expectedOutput[i], pipe.Tokens[i]);
-            }
+                Assert.IsTrue(pipe.NGrams.Contains(input));
+                return true;
+            }).ToList();
         }
     }
 }

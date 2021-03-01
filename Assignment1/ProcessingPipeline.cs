@@ -39,7 +39,7 @@ namespace Assignment1
         /*************   (Builder class further below)   *******************/
         /*******************************************************************/
 
-        // member variables specific to each step, handy for debugging
+        // stores what processing to be done from builder
         internal List<Pipes> _pipeList;
         public string OriginalText { get; }
         private List<string> _tokens = new List<string>();
@@ -55,9 +55,13 @@ namespace Assignment1
         public List<string> StringsInPipeline { get { return _stringsInPipeline; } }
 
         public BagOfWords TermsAndStats { get; set; } = new BagOfWords();
+        private List<string> _keywords = new List<string>();
+        public List<string> Keywords { get { return _keywords; } }
 
         internal int _ngramNum;
         public int NGramNum { get { return _ngramNum; } set { _ngramNum = value; } }
+        private List<string> _NGrams = new List<string>();
+        public List<string> NGrams { get { return _NGrams; } }
 
         // some constants used for the OpenNLP model directories and ngram delimiter
         private static readonly string NGRAM_DELIM = ";;";
@@ -150,17 +154,13 @@ namespace Assignment1
         {
             for (int i = 0; i < _stringsInPipeline.Count; ++i)
             {
-                _stringsInPipeline[i] = RemovePunc(_stringsInPipeline[i]);
+                string termForRemoval = _stringsInPipeline[i];
+                Regex pattern = new Regex(@"'");
+                termForRemoval = pattern.Replace(termForRemoval, "");
+                pattern = new Regex(@"[\p{P}\p{S}_]");
+                termForRemoval = pattern.Replace(termForRemoval, " ");
+                _stringsInPipeline[i] = termForRemoval;
             }
-        }
-
-        private string RemovePunc(string input)
-        {
-            Regex pattern = new Regex(@"'");
-            input = pattern.Replace(input, "");
-            pattern = new Regex(@"[\p{P}\p{S}]");
-            input = pattern.Replace(input, " ");
-            return input;
         }
 
         /// <summary>
@@ -194,8 +194,6 @@ namespace Assignment1
         {
             TermsAndStats = new BagOfWords();
             TermsAndStats.AddTerms(_tokens);
-            TermsAndStats.IndexWords();
-            TermsAndStats.AddNormalizedTermFreq();
         }
 
         /// <summary>
@@ -204,28 +202,46 @@ namespace Assignment1
         /// <param name="tokens">Words to be removed from this instances tokens</param>
         public void RemoveTokens(List<string> tokens)
         {
-            _tokens = (from string t in _tokens where !tokens.Contains(t) select t).ToList();
+            _tokens = _tokens.Except(tokens).ToList();
             ResetTerms();
         }
 
         /// <summary>
-        /// Creates NGrams of length _ngramNum 
+        /// Creates NGrams of word length 2 - _ngramNum 
         /// </summary>
         public void MakeNGrams()
         {
-            List<string> ngrams = new List<string>();
-            for(int ngramFirstWord = 0; ngramFirstWord + _ngramNum <= _tokens.Count; ngramFirstWord++)
+            _NGrams.Clear();
+            for(int ngramFirstWord = 0; ngramFirstWord < _tokens.Count - 1; ngramFirstWord++)
             {
-                string ngram = "";
-                for (int nextNgramWord = ngramFirstWord; nextNgramWord < _ngramNum + ngramFirstWord; nextNgramWord++)
+                for (int ngramCombo = 1; 
+                    ngramCombo < _ngramNum && ngramCombo + ngramFirstWord < _tokens.Count; ngramCombo++)
                 {
-                    ngram += _tokens[nextNgramWord] + NGRAM_DELIM;
+                    string ngram = "";
+                    for (int nextNgramWord = ngramFirstWord; 
+                        nextNgramWord < ngramCombo + ngramFirstWord + 1 && nextNgramWord < Tokens.Count; 
+                        nextNgramWord++)
+                    {
+                        ngram += _tokens[nextNgramWord] + NGRAM_DELIM;
+                    }
+                    ngram = ngram.Substring(0, ngram.Length - NGRAM_DELIM.Length);
+                    _NGrams.Add(ngram);
                 }
-                ngram = ngram.Substring(0, ngram.Length - NGRAM_DELIM.Length);
-                ngrams.Add(ngram);
             }
-            _tokens.AddRange(ngrams);
+            _tokens.AddRange(_NGrams);
             ResetTerms();
+        }
+
+        public void SelectTopPercentKeywords(double percentage)
+        {
+            percentage = Math.Min(1, percentage); // ensure top 100% words chosen if percentage > 1
+            _keywords = TermsAndStats.Terms.
+                Select(termStatPair => termStatPair).
+                OrderByDescending(termStatPair => termStatPair.Value.TFIDF).
+                ToList().
+                Take((int)(TermsAndStats.Terms.Count * percentage)).
+                Select(termStatPair => termStatPair.Key).
+                ToList();
         }
 
         /// <summary>
@@ -233,11 +249,9 @@ namespace Assignment1
         /// found and all stem words indexes in the token list is tracked. Once a dictionary of word stems
         /// and indexes have been made, all tokens are replaced with their stems
         /// </summary>
-        public void Stem()
+        public void StemKeywords()
         {
-            Dictionary<string, List<int>> wordsAndIndices = new Dictionary<string, List<int>>();
-            _tokens = (from string token in _tokens select Stemmer.Stem(token)).ToList();
-            ResetTerms();
+            _keywords = (from string keyword in _keywords select Stemmer.Stem(keyword)).ToList();
         }
 
         /// <summary>

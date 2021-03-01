@@ -17,13 +17,13 @@ namespace Assignment1
     /// </summary>
     public class BagOfWords
     {
-        enum VectorType
+/*        enum VectorType
         {
             IDF,
             NORMTF,
             EXISTS,
             DOCNORMTF_IDF
-        }
+        }*/
         private SortedDictionary<string, WordStats> _terms = new SortedDictionary<string, WordStats>();
         public SortedDictionary<string, WordStats> Terms { get { return _terms; } }
 
@@ -74,20 +74,20 @@ namespace Assignment1
                 if (Terms.ContainsKey(term))
                     Terms.Remove(term);
             }
-            IndexWords();
         }
 
-        /// <summary>
-        /// Sets the index location for each term in the dictionary 
-        /// </summary>
-        public void IndexWords()
+
+        public void SetTFIDF(BagOfWords corpus)
         {
-            for (int i = 0; i < Terms.Count; ++i)
-                Terms.ElementAt(i).Value.Index = i;
-            Indexed = true;
+            Terms.Select((termStatsPair) =>
+            {
+                termStatsPair.Value.TFIDF =
+                termStatsPair.Value.TermFreq * corpus.Terms[termStatsPair.Key].IDF;
+                return true;
+            }).ToList();
         }
 
-        /// <summary>
+ /*       /// <summary>
         /// Creates a feature vector of 1's and 0s if term exists in bow
         /// </summary>
         /// <param name="inputTerms">input words to get feature from</param>
@@ -175,15 +175,6 @@ namespace Assignment1
                     + "BOW");
             }
             return false;
-        }
-
-        public void AddNormalizedTermFreq()
-        {
-            foreach (var term in Terms)
-            {
-                Terms[term.Key].NormalizedTermFreq = Terms[term.Key].TermFreq / (float)Terms.Count;
-            }
-            NormalizedTF = true;
-        }
+        }*/
     }
 }
