@@ -10,6 +10,3 @@
 [submodule "libs/OpenNlp"]
 	path = libs/OpenNlp
 	url = https://github.com/AlexPoint/OpenNlp.git
-[submodule "libs/LemmaGenerator"]
-	path = libs/LemmaGenerator
-	url = https://github.com/AlexPoint/LemmaGenerator.git
