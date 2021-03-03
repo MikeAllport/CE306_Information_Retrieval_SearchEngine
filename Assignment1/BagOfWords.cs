@@ -4,6 +4,7 @@ using System.Collections;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Utils;
 
 namespace Assignment1
 {
@@ -17,20 +18,12 @@ namespace Assignment1
     /// </summary>
     public class BagOfWords
     {
-        enum VectorType
-        {
-            IDF,
-            NORMTF,
-            EXISTS,
-            DOCNORMTF_IDF
-        }
-
         private SortedDictionary<string, WordStats> _terms = new SortedDictionary<string, WordStats>();
         public SortedDictionary<string, WordStats> Terms { get { return _terms; } }
-
-        public bool Indexed { get; set; } = false;
         public bool NormalizedTF { get; set; } = false;
         public bool IDFed { get; set; } = false;
+
+        private SortedList<string, WordStats> listTerms = null;
 
         public static BagOfWords WithWords(List<string> words)
         {
@@ -63,7 +56,6 @@ namespace Assignment1
             {
                 Terms[uniqueTerm].DocFreq += 1;
             }
-            Indexed = false;
             NormalizedTF = false;
             IDFed = false;
         }
@@ -79,10 +71,14 @@ namespace Assignment1
                 if (Terms.ContainsKey(term))
                     Terms.Remove(term);
             }
-            Indexed = false;
             NormalizedTF = false;
         }
 
+        /// <summary>
+        /// Retrives TFIDF feature vector of given documents BOW object
+        /// </summary>
+        /// <param name="documentsBOW">The document, or query, to get TFIDF of</param>
+        /// <returns>TFIDF feature vector</returns>
         public double[] GetDocNormTFIDFVector(BagOfWords documentsBOW)
         {
             if (!documentsBOW.NormalizedTF)
@@ -90,20 +86,24 @@ namespace Assignment1
             if (!IDFed)
                 throw new Exception("Error BagOfWords::GetGeneralizedVector, attempt to retrieve TFIDF on "
                     + "BOW without having assigned IDFs to corpus");
-            return GetGeneralizedVector(documentsBOW, VectorType.DOCNORMTF_IDF);
-        }
-
-        /// <summary>
-        /// Assigns the terms element location to each term in Terms, this is used for creating
-        /// feature vectors to associate element location to term
-        /// </summary>
-        private void AssignIndexes()
-        {
-            for(int i = 0; i < Terms.Count; ++i)
+            // instantiate sortedlist for easy lookup of term indices
+            if (this.listTerms == null || this.listTerms.Count != Terms.Count)
+                this.listTerms = new SortedList<string, WordStats>(Terms);
+            // instantiate term feature vectors
+            double[] docsNormalizedTfVector = new double[Terms.Count];
+            double[] corpusIDFVector = new double[Terms.Count];
+            // assign terms TF and IDF values in feature vectors if exists in corpus
+            foreach(var termStatsPair in documentsBOW.Terms)
             {
-                Terms.ElementAt(i).Value.Index = i;
+                int termIndex = listTerms.IndexOfKey(termStatsPair.Key);
+                if (termIndex >= 0)
+                {
+                    docsNormalizedTfVector[termIndex] = termStatsPair.Value.NormalizedTF;
+                    corpusIDFVector[termIndex] = Terms[termStatsPair.Key].IDF;
+                }
             }
-            Indexed = true;
+            // return TF * IDF of feature vectors
+            return VectorOps.Multiplication(docsNormalizedTfVector, corpusIDFVector);
         }
 
 
@@ -124,7 +124,7 @@ namespace Assignment1
             NormalizedTF = true;
         }
 
-        /// <summary>
+/*        /// <summary>
         /// Creates a feature vector based on a corpus's complete words (this instance) such that feature 
         /// vector will be of length corpusBOW.Terms.Length
         /// </summary>
@@ -133,8 +133,7 @@ namespace Assignment1
         /// <returns>double array term vector</returns>
         private double[] GetGeneralizedVector(BagOfWords documentBOW, VectorType type)
         {
-            if (!Indexed)
-                AssignIndexes();
+            SortedList<string, WordStats> listTerms = new SortedList<string, WordStats>(Terms);
             double[] result = new double[Terms.Count];
             for (int i = 0; i < Terms.Count; ++i)
             {
@@ -143,20 +142,20 @@ namespace Assignment1
                     switch (type)
                     {
                         case VectorType.IDF:
-                            result[Terms[term].Index] = Terms[term].IDF;
+                            result[listTerms.IndexOfKey(term)] = Terms[term].IDF;
                             break;
                         case VectorType.EXISTS:
-                            result[Terms[term].Index] = 1.0;
+                            result[listTerms.IndexOfKey(term)] = 1.0;
                             break;
                         case VectorType.NORMTF:
-                            result[Terms[term].Index] = documentBOW.Terms[term].NormalizedTF;
+                            result[listTerms.IndexOfKey(term)] = documentBOW.Terms[term].NormalizedTF;
                             break;
                         case VectorType.DOCNORMTF_IDF:
-                            result[Terms[term].Index] = Terms[term].IDF * documentBOW.Terms[term].NormalizedTF;
+                            result[listTerms.IndexOfKey(term)] = Terms[term].IDF * documentBOW.Terms[term].NormalizedTF;
                             break;
                     }
             }
             return result;
-        }
+        }*/
     }
 }

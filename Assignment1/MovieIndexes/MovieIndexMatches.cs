@@ -15,11 +15,20 @@ namespace Assignment1
     {
         // json attribute name constants
         protected const string MATCHLIST_KEY = "Results",
-            QUERY_KEY = "QueryString";
+            QUERY_KEY = "QueryString",
+            RESULTQTY_KEY = "ResultsFound";
 
-        public List<MovieIndexQueryMatch> Matches { get; } = new List<MovieIndexQueryMatch>();
+        public SortedSet<MovieIndexQueryMatch> Matches { get; set; } = new SortedSet<MovieIndexQueryMatch>();
         public string Query { get; set; } = "";
+        public int ResultsFound = 0;
 
+        public MovieIndexMatches(int numResults, string query)
+        {
+            this.ResultsFound = numResults;
+            this.Query = query;
+        }
+
+        public MovieIndexMatches() { }
 
         // Json serialization methods
         //serialise
@@ -30,7 +39,9 @@ namespace Assignment1
                 return;
             writer.WriteStartObject();
             writer.WritePropertyName(QUERY_KEY);
-            writer.WriteValue(Query);
+            writer.WriteValue(index.Query);
+            writer.WritePropertyName(RESULTQTY_KEY);
+            writer.WriteValue(index.ResultsFound);
             writer.WritePropertyName(MATCHLIST_KEY);
             writer.WriteStartArray();
             foreach (var match in index.Matches)
@@ -49,8 +60,8 @@ namespace Assignment1
             var jsonQuery = jsonObj[QUERY_KEY].Value<string>();
             index.Query = jsonQuery;
             var jsonMatches = jsonObj[MATCHLIST_KEY].Value<JArray>();
-            var match = jsonMatches.ToObject<List<MovieIndexQueryMatch>>();
-            index.Matches.AddRange(match);
+            var match = jsonMatches.ToObject<SortedSet<MovieIndexQueryMatch>>();
+            index.Matches = new SortedSet<MovieIndexQueryMatch>(match);
             return index;
         }
 

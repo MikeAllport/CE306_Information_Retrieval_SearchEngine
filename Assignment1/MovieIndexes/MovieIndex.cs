@@ -11,7 +11,8 @@ namespace Assignment1
 {
     public enum FieldName
     {
-        ID, RELEASEYEAR, TITLE, ORIGIN, DIRECTOR, CAST, GENRE, WIKI, PLOT
+        ID, RELEASEYEAR, TITLE, ORIGIN, DIRECTOR, CAST, GENRE, WIKI, PLOT,
+        NONE
     }
     [JsonConverter(typeof(MovieIndex))]
     public class MovieIndex: 
@@ -131,12 +132,6 @@ namespace Assignment1
                 Equals(x.Plot, y.Plot);
         }
 
-        public int Compare([DisallowNull] MovieIndex x, [DisallowNull] MovieIndex y)
-        {
-            return y.ReleaseYear - x.ReleaseYear;
-        }
-
-
         /* Adapted from: https://stackoverflow.com/questions/59375124/how-to-use-system-hashcode-combine-with-more-than-8-values */
         /// <summary>
         /// GetHashCode overrides default hash code method and returns a unique hash related to this object
@@ -150,6 +145,11 @@ namespace Assignment1
             hash.Add(obj.Origin); hash.Add(obj.Director); hash.Add(obj.Cast);
             hash.Add(obj.Genre); hash.Add(obj.Wiki); hash.Add(obj.Plot);
             return hash.ToHashCode();
+        }
+
+        public int Compare([DisallowNull] MovieIndex x, [DisallowNull] MovieIndex y)
+        {
+            return y.ReleaseYear - x.ReleaseYear;
         }
 
         /// <summary>

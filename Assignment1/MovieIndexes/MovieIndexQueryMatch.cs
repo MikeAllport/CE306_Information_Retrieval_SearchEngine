@@ -6,11 +6,15 @@ using System.Threading.Tasks;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Nest;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Assignment1
 {
     [JsonConverter(typeof(MovieIndexQueryMatch))]
-    public class MovieIndexQueryMatch : MovieIndex
+    public class MovieIndexQueryMatch : 
+        MovieIndex,
+        IComparable<MovieIndexQueryMatch>,
+        IEqualityComparer<MovieIndexQueryMatch>
     {
         // json attribute name constants
         protected const string SIMILARITY_KEY = "SimilarityScore",
@@ -23,11 +27,16 @@ namespace Assignment1
         [PropertyName(FIELDMATCHED_KEY)]
         public bool FieldMatched { get; set; } = false;
 
+        public bool MatchFieldQuery = false;
+
         [PropertyName(MATCHNUM_KEY)]
         public int ID { get; set; } = 0;
 
-        public MovieIndexQueryMatch(MovieIndex other, ProcessingPipeline pipe) : base(other)
-        {
+        public MovieIndexQueryMatch(double similarity, MovieIndex other, bool matchField = false, bool fieldMatched = true) : base(other) {
+            this.SimilarityScore = similarity;
+            this.FieldMatched = fieldMatched;
+            this.MatchFieldQuery = matchField;
+            this.FieldMatched = fieldMatched;
         }
 
         public MovieIndexQueryMatch() : base() { }
@@ -42,8 +51,11 @@ namespace Assignment1
             writer.WriteStartObject();
             writer.WritePropertyName(SIMILARITY_KEY);
             writer.WriteValue(SimilarityScore);
-            writer.WritePropertyName(FIELDMATCHED_KEY);
-            writer.WriteValue(FieldMatched ? "true" : "false");
+            if (MatchFieldQuery)
+            {
+                writer.WritePropertyName(FIELDMATCHED_KEY);
+                writer.WriteValue(FieldMatched ? "true" : "false");
+            }
             writer.WritePropertyName(MATCHNUM_KEY);
             writer.WriteValue(ID);
             base.SetWriter(index, writer, serializer);
@@ -58,7 +70,8 @@ namespace Assignment1
             var jsonSimilarity = jsonObj[SIMILARITY_KEY].Value<double>();
             index.SimilarityScore = jsonSimilarity;
             var jsonMatched = jsonObj[FIELDMATCHED_KEY].Value<string>();
-            index.FieldMatched = jsonMatched.Equals("true") ? true : false; 
+            if (jsonMatched != null)
+                index.FieldMatched = jsonMatched.Equals("true") ? true : false; 
             var jsonID = jsonObj[MATCHNUM_KEY].Value<int>();
             index.ID = jsonID;
             base.SetReader(index, jsonObj);
@@ -79,6 +92,36 @@ namespace Assignment1
                 return JsonConvert.DeserializeObject<MovieIndexQueryMatch>(jsonSerialized);
             }
             catch (Exception) { return null; }
+        }
+
+        public int CompareTo(MovieIndexQueryMatch other)
+        {
+            if (Equals(this, other))
+                return 0;
+            if(MatchFieldQuery)
+            {
+                if (other.FieldMatched && this.FieldMatched)
+                    return CompareSimilarities(other);
+                if (other.FieldMatched)
+                    return -1;
+                return 1;
+            }
+            return CompareSimilarities(other);
+        }
+
+        private int CompareSimilarities(MovieIndexQueryMatch other)
+        {
+            return other.SimilarityScore - this.SimilarityScore < 0 ? -1: 1;
+        }
+
+        public bool Equals([AllowNull] MovieIndexQueryMatch x, [AllowNull] MovieIndexQueryMatch y)
+        {
+            return base.Equals(x, y);
+        }
+
+        public int GetHashCode([DisallowNull] MovieIndexQueryMatch obj)
+        {
+            return base.GetHashCode(obj);
         }
     }
 }

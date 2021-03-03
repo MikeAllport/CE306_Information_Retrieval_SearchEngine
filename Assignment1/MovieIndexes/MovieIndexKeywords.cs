@@ -15,7 +15,7 @@ namespace Assignment1
         // json attribute name constants
         protected const string KEYWORD_KEY = "Keywords";
 
-        [PropertyName(KEYWORD_KEY)]
+        [PropertyName(KEYWORD_KEY), Keyword()]
         public List<string> KeyWords { get; set; } = new List<string>();
 
         public MovieIndexKeyWords(MovieIndex other, ProcessingPipeline pipe) : base(other)

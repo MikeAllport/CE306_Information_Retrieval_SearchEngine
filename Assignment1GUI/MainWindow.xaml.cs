@@ -22,18 +22,16 @@ namespace Assignment1GUI
     /// </summary>
     public partial class MainWindow : Window, Adapter
     {
-        private bool[] buttonVisibilities = new bool[5] { true, false, false, false, false };
+        private bool[] buttonVisibilities;
         private int _consoleRowCount = 0;
         private Program program;
-        Application ownerApp;
-        public delegate void PerformActionNoArg();
-        public delegate void PerformAction1Arg(string arg);
+
         public MainWindow()
         {
 
             InitializeComponent();
             program = new Program(this);
-            ResetButtonVisibilities();
+            ResetButtonVisibilities(new bool[5] { true, false, false, false, false });
         }
 
         // Method code adapted from:
@@ -58,10 +56,13 @@ namespace Assignment1GUI
             OpenFileDialog openFileDialog = new OpenFileDialog();
             if (openFileDialog.ShowDialog() == true)
             {
-                buttonVisibilities[1] = true;
-                ResetButtonVisibilities();
                 AddConsoleMessage("Indexing full text documents, please wait a moment...", GUIColor.ERROR_COLOR);
-                DoAction(program.PerformFullIndexing, openFileDialog.FileName);
+                new Thread(()=> {
+                    if (program.PerformFullIndexing(openFileDialog.FileName))
+                    {
+                        ResetButtonVisibilities(new bool[] { true, true, false, false, false });
+                    }
+                }).Start();
             }
         }
 
@@ -69,90 +70,54 @@ namespace Assignment1GUI
         private void OnComp2Click(object sender, RoutedEventArgs e)
         {
             buttonVisibilities[1] = false;
-            buttonVisibilities[2] = true;
-            ResetButtonVisibilities();
             AddConsoleMessage("Proccessing documents, this may take a few minutes...", GUIColor.ERROR_COLOR);
-            DoAction(program.PerformTokenization);
+            new Thread(() =>
+            {
+                if (program.PerformTokenization())
+                    ResetButtonVisibilities(new bool[] { true, false, true, false, false });
+            }).Start();
         }
 
         private void OnComp3Click(object sender, RoutedEventArgs e)
-        {            
-            buttonVisibilities[2] = false;
-            buttonVisibilities[3] = true;
-            ResetButtonVisibilities();
+        {
             AddConsoleMessage("Selecting Keywords for documents, this may take a few minutes...", GUIColor.ERROR_COLOR);
-            DoAction(program.PerformKeywordSelection);
-
+            new Thread(() =>
+            {
+                if (program.PerformKeywordSelection())
+                    ResetButtonVisibilities(new bool[] { true, false, false, true, false });
+            }).Start();
         }
 
         private void OnComp4Click(object sender, RoutedEventArgs e)
         {
-            buttonVisibilities[3] = false;
-            buttonVisibilities[4] = true;
-            ResetButtonVisibilities();
             AddConsoleMessage("Stemming Keywords in documents, please wait a moment...", GUIColor.ERROR_COLOR);
-            DoAction(program.PerformStemming);
+            new Thread(() =>
+            {
+                if (program.PerformStemming())
+                    ResetButtonVisibilities(new bool[] { true, false, false, false, true });
+            }).Start();
         }
 
         private void OnComp5Click(object sender, RoutedEventArgs e)
         {
-            if (QueryField.Text.Length == 0)
-                return;
-
-            program.PerformSearch(QueryField.Text, FieldName.CAST);
+            MessageGrid.Children.Clear();
+            _consoleRowCount = 0;
+            var queryResults = program.PerformSearch(QueryField.Text, FieldName.NONE);
+            AddConsoleMessage("Query Results\n" + queryResults.Serialize());
+            consoleViewer.ScrollToTop();
         }
 
-        private void ResetButtonVisibilities()
+        private void ResetButtonVisibilities(bool[] buttons)
         {
-            Comp1But.IsEnabled = buttonVisibilities[0];
-            Comp2But.IsEnabled = buttonVisibilities[1];
-            Comp3But.IsEnabled = buttonVisibilities[2];
-            Comp4But.IsEnabled = buttonVisibilities[3];
-            ZipfAnalysis.IsEnabled = buttonVisibilities[2];
-        }
-
-        // Allows gui repaint during slow loading actions
-        // Code adapted from:
-        // https://stackoverflow.com/questions/818911/force-a-wpf-control-to-refresh
-        // @Remco
-        private void DoAction(PerformActionNoArg method)
-        {
-            Thread thread = new Thread(new ThreadStart(() =>
+            Dispatcher.Invoke(() => 
             {
-                Thread.Sleep(50);
-                try
-                {
-                    this.Dispatcher.BeginInvoke(DispatcherPriority.Send,
-                        new Action(() =>
-                        {
-                            method();
-                        }));
-                }
-                catch { }
-            }));
-            thread.Start();
-        }
-
-        // Allows gui repaint during slow loading actions
-        // Code adapted from:
-        // https://stackoverflow.com/questions/818911/force-a-wpf-control-to-refresh
-        // @Remco
-        private void DoAction(PerformAction1Arg method, string arg)
-        {
-            Thread thread = new Thread(new ThreadStart(() =>
-            {
-                Thread.Sleep(50); // this is important ...
-                try
-                {
-                    this.Dispatcher.BeginInvoke(DispatcherPriority.Send,
-                        new Action(()=>
-                        {
-                            method(arg);
-                        }));
-                }
-                catch { }
-            }));
-            thread.Start();
+                buttonVisibilities = buttons;
+                Comp1But.IsEnabled = buttonVisibilities[0];
+                Comp2But.IsEnabled = buttonVisibilities[1];
+                Comp3But.IsEnabled = buttonVisibilities[2];
+                Comp4But.IsEnabled = buttonVisibilities[3];
+                ZipfAnalysis.IsEnabled = buttonVisibilities[1];
+            });
         }
 
         public void AddConsoleMessage(
@@ -161,28 +126,36 @@ namespace Assignment1GUI
             GUIColor? backgroundColor = null
             )
         {
-            SolidColorBrush forground = GetBrush(forgroundColor, Brushes.Black), 
-                background = GetBrush(backgroundColor, Brushes.White);
+            this.Dispatcher.Invoke(() =>
+            {
+                SolidColorBrush forground = GetBrush(forgroundColor, Brushes.Black),
+                    background = GetBrush(backgroundColor, Brushes.White);
 
-            RowDefinition row = new RowDefinition();
-            TextBlock textToAdd = new TextBlock();
-            textToAdd.FontFamily = new FontFamily("Consolas");
-            textToAdd.Text = "> " + message;
+                RowDefinition row = new RowDefinition();
+                TextBox textToAdd = new TextBox();
+                textToAdd.FontFamily = new FontFamily("Consolas");
+                textToAdd.Text = "> " + message;
 
-            textToAdd.Background = background;
-            textToAdd.Foreground = forground;
-            textToAdd.FontStretch = FontStretches.UltraExpanded;
-            textToAdd.TextAlignment = TextAlignment.Left;
-            textToAdd.TextWrapping = TextWrapping.Wrap;
+                textToAdd.Background = background;
+                textToAdd.Foreground = forground;
+                textToAdd.FontStretch = FontStretches.UltraExpanded;
+                textToAdd.TextAlignment = TextAlignment.Left;
+                textToAdd.TextWrapping = TextWrapping.Wrap;
 
-            int rows = Regex.Matches(message, "\n").Count;
-            if (rows == 0)
-                rows = 1;
-            row.MinHeight = 20;
-            MessageGrid.RowDefinitions.Add(row);
-            MessageGrid.Children.Add(textToAdd);
-            Grid.SetRow(textToAdd, _consoleRowCount++);
-            consoleViewer.ScrollToBottom();
+                textToAdd.Background = new SolidColorBrush(Colors.White) { Opacity = 0 };
+                textToAdd.BorderThickness = new Thickness(0);
+                textToAdd.IsReadOnly = true;
+                textToAdd.TextWrapping = TextWrapping.Wrap;
+
+                int rows = Regex.Matches(message, "\n").Count;
+                if (rows == 0)
+                    rows = 1;
+                row.MinHeight = 20;
+                MessageGrid.RowDefinitions.Add(row);
+                MessageGrid.Children.Add(textToAdd);
+                Grid.SetRow(textToAdd, _consoleRowCount++);
+                consoleViewer.ScrollToBottom();
+            });
         }
 
         private static SolidColorBrush GetBrush(GUIColor? colGUI, SolidColorBrush defaultBrush)

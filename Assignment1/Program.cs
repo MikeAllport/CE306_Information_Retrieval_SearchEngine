@@ -28,9 +28,9 @@ namespace Assignment1
         /// this must be done instead of using default assignment else GUI cannot call with default assignment
         /// </summary>
         /// <param name="uri"></param>
-        public void PerformFullIndexing(string uri)
+        public bool PerformFullIndexing(string uri)
         {
-            PerformFullIndexing(uri, _numDocuments);
+            return PerformFullIndexing(uri, _numDocuments);
         }
 
         /// <summary>
@@ -42,7 +42,7 @@ namespace Assignment1
         /// to ES for an index using MatchAll with the result output to gui using json serialization
         /// </summary>
         /// <param name="uri">The full absolute path to a file, must be a MovieIndex csv as per assignment</param>
-        public void PerformFullIndexing(string uri, int numDocs)
+        public bool PerformFullIndexing(string uri, int numDocs)
         {
             try
             {
@@ -74,10 +74,12 @@ namespace Assignment1
 
                 // instantiates the analyzer engine used in proceeding steps
                 engine = new AnalyserEngine(_miService.MovieIndexMap, gui, new AnalyserEngineSettings());
+                return true;
             }
             catch (Exception e)
             {
                 gui?.AddConsoleMessage(e.Message, IGUIAdapter.GUIColor.ERROR_COLOR);
+                return false;
             }
         }
 
@@ -87,7 +89,7 @@ namespace Assignment1
         /// for each document in the corpus, uploads the processed data to database via services, and outputs the first
         /// documents with ID 1-6 to gui
         /// </summary>
-        public void PerformTokenization()
+        public bool PerformTokenization()
         {
             try
             {
@@ -110,10 +112,12 @@ namespace Assignment1
                     result += document.Serialize() + "\n";
                 }
                 gui?.AddConsoleMessage(result);
+                return true;
             }
             catch (Exception e)
             {
                 gui?.AddConsoleMessage(e.Message, IGUIAdapter.GUIColor.ERROR_COLOR);
+                return false;
             }
         }
 
@@ -123,97 +127,214 @@ namespace Assignment1
         /// step (stop word removal with zipf analysis, phrase generation, removal of very infrequent words, IDF weighting, 
         /// and keyword selection), uploads processed documents to database, and outputs first documents ID'd 1-6 to gui
         /// </summary>
-        public void PerformKeywordSelection()
+        public bool PerformKeywordSelection()
         {
-            // creates database services
-            var keywordedService = new MovieIndexServiceProcessed<MovieIndexKeyWords>();
-            var elasticService = new ElasticService<MovieIndexService<MovieIndexKeyWords>, MovieIndexKeyWords>(keywordedService);
-            elasticService.InitDB();
-
-            // processes documents for this steps
-            engine.RemoveStopWords();
-            engine.GeneratePhrases();
-            engine.RemoveVeryInfrequentWords();
-            engine.CalculateIDFs();
-            engine.AddKeywordsToPipes();
-
-            // indexes documents and uploads to ElasticSearch
-            var indexedDocs = SortedIndexDictToList(CreateMovieIndexChildClasses(keywordedService));
-            keywordedService.UploadData(elasticService);
-
-            // outputs first 6 documents to gui
-            var top6docs = indexedDocs.Take(6).ToList();
-            elasticService.AwaitASync();
-            string result = $"Created Keyworded Processed Index: {keywordedService.GetIndexTitle()}\n> 6 results: \n";
-            foreach (var document in top6docs)
+            try
             {
-                result += document.Serialize() + "\n";
+                // creates database services
+                var keywordedService = new MovieIndexServiceProcessed<MovieIndexKeyWords>();
+                var elasticService = new ElasticService<MovieIndexService<MovieIndexKeyWords>, MovieIndexKeyWords>(keywordedService);
+                elasticService.InitDB();
+
+                // processes documents for this steps
+                engine.RemoveStopWords();
+                engine.GeneratePhrases();
+                engine.RemoveVeryInfrequentWords();
+                engine.CalculateIDFs();
+                engine.AddKeywordsToPipes();
+
+                // indexes documents and uploads to ElasticSearch
+                var indexedDocs = SortedIndexDictToList(CreateMovieIndexChildClasses(keywordedService));
+                keywordedService.UploadData(elasticService);
+
+                // outputs first 6 documents to gui
+                var top6docs = indexedDocs.Take(6).ToList();
+                elasticService.AwaitASync();
+                string result = $"Created Keyworded Processed Index: {keywordedService.GetIndexTitle()}\n> 6 results: \n";
+                foreach (var document in top6docs)
+                {
+                    result += document.Serialize() + "\n";
+                }
+                gui?.AddConsoleMessage(result);
+                return true;
             }
-            gui?.AddConsoleMessage(result);
+            catch (Exception e)
+            {
+                gui?.AddConsoleMessage(e.Message, IGUIAdapter.GUIColor.ERROR_COLOR);
+                return false;
+            }
+
         }
 
         /// <summary>
         /// Assignment Step 4 - 
         /// </summary>
-        public void PerformStemming()
+        public bool PerformStemming()
         {
-            // instantiates data services
-            var tokenizedService = new MovieIndexServiceProcessed<MovieIndexKeyWordStemmed>();
-            var elasticService = new ElasticService<MovieIndexService<MovieIndexKeyWordStemmed>, MovieIndexKeyWordStemmed>(tokenizedService);
-            elasticService.InitDB();
-
-            // creates indexes with original non stemmed keywords
-            SortedDictionary<int, MovieIndexKeyWordStemmed> results = CreateMovieIndexChildClasses(tokenizedService);
-
-            // processed documents with stems
-            engine.GenerateKeywordStems();
-            // adds new stemmed keywords to index
-            foreach (var indexIDPipePair in engine.IndexIDDict)
+            try
             {
-                results[indexIDPipePair.Key].AddKeywordStemmedFromPipe(indexIDPipePair.Value);
+                // instantiates data services
+                var tokenizedService = new MovieIndexServiceProcessed<MovieIndexKeyWordStemmed>();
+                var elasticService = new ElasticService<MovieIndexService<MovieIndexKeyWordStemmed>, MovieIndexKeyWordStemmed>(tokenizedService);
+                elasticService.InitDB();
+
+                // creates indexes with original non stemmed keywords
+                SortedDictionary<int, MovieIndexKeyWordStemmed> results = CreateMovieIndexChildClasses(tokenizedService);
+
+                // processed documents with stems
+                engine.GenerateKeywordStems();
+                // adds new stemmed keywords to index
+                foreach (var indexIDPipePair in engine.IndexIDDict)
+                {
+                    results[indexIDPipePair.Key].AddKeywordStemmedFromPipe(indexIDPipePair.Value);
+                }
+                var top6docs = (from KeyValuePair<int, MovieIndexKeyWordStemmed> idIndexPair in results select idIndexPair.Value).Take(6).ToList();
+
+                // uploads documents to database
+                tokenizedService.UploadData(elasticService);
+                elasticService.AwaitASync();
+
+                // outputs first 6 documents to gui
+                string result = $"Created Stemmed Processed Index: {tokenizedService.GetIndexTitle()}\n> 6 results: \n";
+                foreach (var document in top6docs)
+                {
+                    result += document.Serialize() + "\n";
+                }
+                gui?.AddConsoleMessage(result);
+                return true;
             }
-            var top6docs = (from KeyValuePair<int, MovieIndexKeyWordStemmed> idIndexPair in results select idIndexPair.Value).Take(6).ToList();
-
-            // uploads documents to database
-            tokenizedService.UploadData(elasticService);
-            elasticService.AwaitASync();
-
-            // outputs first 6 documents to gui
-            string result = $"Created Stemmed Processed Index: {tokenizedService.GetIndexTitle()}\n> 6 results: \n";
-            foreach (var document in top6docs)
+            catch (Exception e)
             {
-                result += document.Serialize() + "\n";
+                gui?.AddConsoleMessage(e.Message, IGUIAdapter.GUIColor.ERROR_COLOR);
+                return false;
             }
-            gui?.AddConsoleMessage(result);
+}
+
+        public MovieIndexMatches PerformSearch(string searchString, FieldName fieldType = FieldName.NONE)
+        {
+            try
+            {
+                // create pipes of query, 2 needed, one keyworded and stemmed one none keyworded
+                var keywordedQueryPipe = new ProcessingPipeline.Builder(searchString).
+                        SplitBulletPoints().
+                        SplitSentences().
+                        RemovePunctuation().
+                        Normalize().
+                        Tokenize().
+                        Build();
+                keywordedQueryPipe.NGramNum = 3;
+                keywordedQueryPipe.MakeNGrams();
+                keywordedQueryPipe.AddTokensToKeywords();
+                keywordedQueryPipe.StemKeywords();
+
+                var rawProcessedQueryPipe = new ProcessingPipeline.Builder(searchString).
+                        SplitBulletPoints().
+                        SplitSentences().
+                        RemovePunctuation().
+                        Normalize().
+                        Tokenize().
+                        Build();
+
+                // instantiates data services
+                var tokenizedService = new MovieIndexServiceProcessed<MovieIndexKeyWords>();
+                var elasticService = new ElasticService<MovieIndexService<MovieIndexKeyWords>, MovieIndexKeyWords>(tokenizedService);
+
+                //makes query
+                List<MovieIndexKeyWords> results = elasticService.KeywordQuery<MovieIndexKeyWords>(keywordedQueryPipe.Keywords);
+                MovieIndexMatches matchesObj = new MovieIndexMatches(results.Count, searchString);
+
+                // processes queries
+                foreach (MovieIndexKeyWords match in results)
+                {
+                    // finds cosing similarity between query and match document
+                    var matchPipe = new ProcessingPipeline.Builder(match.GetFullText())
+                        .SplitBulletPoints()
+                        .SplitSentences()
+                        .RemovePunctuation()
+                        .Normalize()
+                        .Tokenize()
+                        .Build();
+                    double queryDocSimilarity = engine.CosineSimilarity(rawProcessedQueryPipe.TermsAndStats, matchPipe.TermsAndStats);
+
+                    // processes match, checking if fields match if user selected a field in gui
+                    MovieIndexQueryMatch processedMatch;
+                    if (fieldType != FieldName.NONE)
+                    {
+                        bool fieldMatches = FieldMatches(fieldType, match, rawProcessedQueryPipe.Tokens);
+                        processedMatch = new MovieIndexQueryMatch(queryDocSimilarity, match, true, fieldMatches);
+                    }
+                    else
+                    {
+                        processedMatch = new MovieIndexQueryMatch(queryDocSimilarity, match);
+                    }
+                    matchesObj.Matches.Add(processedMatch);
+                }
+
+                // assign match indexes and set count
+                matchesObj.ResultsFound = matchesObj.Matches.Count;
+                for (int i = 0; i < matchesObj.Matches.Count;)
+                {
+                    matchesObj.Matches.ElementAt(i).ID = ++i;
+                }
+
+                // return matches, leaving responsibility for gui to output results message such that it can clear screen
+                return matchesObj;
+            }
+            catch (Exception e)
+            {
+                gui?.AddConsoleMessage(e.Message, IGUIAdapter.GUIColor.ERROR_COLOR);
+                return null;
+            }
         }
 
-        public void PerformSearch(string searchString, FieldName FieldType)
+        /// <summary>
+        /// Detects if any of the terms in the users query matches a given match's field of a given field
+        /// name
+        /// </summary>
+        /// <param name="name">The field to check if query matches</param>
+        /// <param name="match">The movie index to checl</param>
+        /// <param name="queryRaw">The list of users queries, pre-processed</param>
+        /// <returns>true if field contains one of users terms, false otherwise</returns>
+        private bool FieldMatches(FieldName name, MovieIndex match, List<string> queryRaw)
         {
-            var keywordedQueryPipe = new ProcessingPipeline.Builder(searchString).
-                    SplitBulletPoints().
-                    SplitSentences().
-                    RemovePunctuation().
-                    Normalize().
-                    Tokenize().
-                    Build();
-            keywordedQueryPipe.NGramNum = 3;
-            keywordedQueryPipe.MakeNGrams();
-            keywordedQueryPipe.AddTokensToKeywords();
-            keywordedQueryPipe.StemKeywords();
-
-            var rawProcessedQueryPipe = new ProcessingPipeline.Builder(searchString).
-                    SplitBulletPoints().
-                    SplitSentences().
-                    RemovePunctuation().
-                    Normalize().
-                    Tokenize().
-                    Build();
-
-            // instantiates data services
-            var tokenizedService = new MovieIndexServiceProcessed<MovieIndexKeyWords>();
-            var elasticService = new ElasticService<MovieIndexService<MovieIndexKeyWords>, MovieIndexKeyWords>(tokenizedService);
-
-            List<MovieIndexKeyWords> results1 = elasticService.KeywordQuery<MovieIndexKeyWords>(keywordedQueryPipe.Keywords);
+            string field;
+            switch(name)
+            {
+                case FieldName.CAST:
+                    field = match.Cast;
+                    break;
+                case FieldName.DIRECTOR:
+                    field = match.Director;
+                    break;
+                case FieldName.GENRE:
+                    field = match.Genre;
+                    break;
+                case FieldName.ORIGIN:
+                    field = match.Origin;
+                    break;
+                case FieldName.PLOT:
+                    field = match.Plot;
+                    break;
+                case FieldName.RELEASEYEAR:
+                    field = match.ReleaseYear.ToString();
+                    break;
+                case FieldName.TITLE:
+                    field = match.Title;
+                    break;
+                default: //(WIKI)
+                    field = match.Wiki;
+                    break;
+            }
+            ProcessingPipeline fieldPipe = new ProcessingPipeline.Builder(field)
+                    .SplitBulletPoints()
+                    .SplitSentences()
+                    .RemovePunctuation()
+                    .Normalize()
+                    .Tokenize()
+                    .Build();
+            if (fieldPipe.Tokens.Intersect(queryRaw).Count() > 0)
+                return true;
+            return false;
         }
 
         /// <summary>

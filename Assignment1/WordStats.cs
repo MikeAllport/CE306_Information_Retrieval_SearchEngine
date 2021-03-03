@@ -8,7 +8,6 @@ namespace Assignment1
 {
     public class WordStats
     {
-        public int Index { get; set; } = 0;
         public int DocFreq { get; set; } = 0;
         public int TermFreq { get; set; } = 0;
         public double NormalizedTF { get; set; } = 0;

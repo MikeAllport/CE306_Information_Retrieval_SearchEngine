@@ -26,7 +26,6 @@ namespace Assignment1_unitTests
         {
             Assert.AreEqual(2, bow.Terms[wordlist1[0]].DocFreq);
             Assert.AreEqual(3, bow.Terms[wordlist1[0]].TermFreq);
-            Assert.AreEqual(false, bow.Indexed);
         }
 
 /*        [TestMethod]
