@@ -94,6 +94,13 @@ namespace Assignment1
             catch (Exception) { return null; }
         }
 
+        /// <summary>
+        /// Sorts in descending order of importance, with field matching prioritized i.e if query has been made
+        /// requesting field matching, then checks if both has fieldmatched then returns similarity diff, or
+        /// if other matched 1, or if this matched -1
+        /// </summary>
+        /// <param name="other">Other QueryMatch item to be compared against</param>
+        /// <returns>positive if this is less value than other</returns>
         public int CompareTo(MovieIndexQueryMatch other)
         {
             if (Equals(this, other))
@@ -103,12 +110,18 @@ namespace Assignment1
                 if (other.FieldMatched && this.FieldMatched)
                     return CompareSimilarities(other);
                 if (other.FieldMatched)
+                    return 1;
+                if (FieldMatched)
                     return -1;
-                return 1;
             }
             return CompareSimilarities(other);
         }
 
+        /// <summary>
+        /// Compares other items similarity
+        /// </summary>
+        /// <param name="other">other QueryMatch</param>
+        /// <returns>positive if this is less value than other</returns>
         private int CompareSimilarities(MovieIndexQueryMatch other)
         {
             return other.SimilarityScore - this.SimilarityScore < 0 ? -1: 1;

@@ -4,9 +4,7 @@ using System.Text;
 using System.Linq;
 using static Assignment1.ProcessingPipeline.Pipes;
 using System.Linq;
-using OpenNLP;
 using System.Text.RegularExpressions;
-using LemmaSharp;
 using System.IO;
 
 namespace Assignment1
@@ -66,12 +64,6 @@ namespace Assignment1
         // some constants used for the OpenNLP model directories and ngram delimiter
         private static readonly string NGRAM_DELIM = ";;";
 
-        private static readonly string MODEL_PATH = Assignment1.Program.SOLUTION_DIR +
-            "libs/OpenNlp/Resources/Models/";
-        private static readonly string SENTENCE_MODEL = MODEL_PATH + "EnglishSD.nbin";
-        private static readonly string REGULAR_TOKENIZER = MODEL_PATH + "EnglishTok.nbin";
-
-
         /// <summary>
         /// Private internal constructor, so this cannot be used without a builder
         /// </summary>
@@ -117,10 +109,12 @@ namespace Assignment1
         private void SplitSentences()
         {
             List<string> output = new List<string>();
-            var sentenceDetector = new OpenNLP.Tools.SentenceDetect.EnglishMaximumEntropySentenceDetector(SENTENCE_MODEL);
+            //Regex pattern = new Regex(@"(.*?([.!?$]|(\.[A-Z]))(?:\s|$))|.*?$"); 
+            Regex pattern = new Regex(@"(.*?[.!?$](?:\n|\s|$))|\w.*(?!:[$\n])");
             foreach (string inputItem in _stringsInPipeline)
             {
-                output = output.Union(sentenceDetector.SentenceDetect(inputItem)).ToList();
+                var match = pattern.Matches(inputItem);
+                output.AddRange((from Match m in pattern.Matches(inputItem) select m.Value).ToList());
             }
             _sentences = _sentences.Union(output).ToList();
             _stringsInPipeline = output;
@@ -135,9 +129,9 @@ namespace Assignment1
         private void SplitBulletPoints()
         {
             List<string> output = new List<string>();
+            Regex pattern = new Regex(@"([\u2022][^\u2022\n$]*)|([0-9]{1,}\.\s[^0-9\n$]*)|([0-9]{1,}\s-\s[^0-9\n$]*)");
             foreach (string inputItem in _stringsInPipeline)
             {
-                Regex pattern = new Regex(@"([\u2022][^\u2022\n$]*)|([0-9]{1,}\.\s[^0-9\n$]*)|([0-9]{1,}\s-\s[^0-9\n$]*)");
                 var hits = pattern.Matches(inputItem).Where(match => !IsBlank(match.Value));
                 _bulletPoints = _bulletPoints.Union(from Match m in pattern.Matches(inputItem) select m.Value).ToList();
                 output = output.Union(pattern.Split(inputItem).Where(match => !IsBlank(match))).ToList();
@@ -180,12 +174,9 @@ namespace Assignment1
         /// </summary>
         private void Tokenize()
         {
-            var tokenizer = new OpenNLP.Tools.Tokenize.EnglishMaximumEntropyTokenizer(REGULAR_TOKENIZER);
             foreach (string value in _stringsInPipeline)
             {
-                var s = tokenizer.Tokenize(value);
-                foreach (string word in from str in tokenizer.Tokenize(value) select str)
-                    _tokens.Add(word);
+                _tokens.AddRange(value.Split(" "));
             }
             ResetTerms();
         }

@@ -57,7 +57,7 @@ namespace Assignment1_unitTests
             index3.Plot += " hey 2";
             Dictionary<int, MovieIndex> dict = new Dictionary<int, MovieIndex>() { { 1, index }, { 2, index2 }, { 3, index3 } };
             engine = new AnalyserEngine(dict, null, new AnalyserEngineSettings());
-            engine.GenerateTokenizatedPipes();
+            engine.GenerateTokenizedPipes();
             engine.GeneratePhrases();
             engine.CalculateIDFs();
             document = BagOfWords.WithWords(wordlist1);

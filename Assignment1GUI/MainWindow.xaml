@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Assignment1GUI"
         mc:Ignorable="d"
-        Title="MainWindow" Height="650" Width="1150"
+        Title="MainWindow" MinHeight="650" MinWidth="1150"
         Background="AntiqueWhite">
     <Grid>
         <Grid.ColumnDefinitions>
@@ -18,7 +18,7 @@
         <Button x:Name="Comp1But" HorizontalAlignment="Left" Margin="15,9,0,0" VerticalAlignment="Top" Height="40" Width="115" Click="OnComp1Click">
             <TextBlock TextAlignment="Center"><Run Text="Component 1"/><LineBreak/><Run Text="Import Dataset"/></TextBlock>
         </Button>
-        <Button x:Name="ZipfAnalysis" HorizontalAlignment="Right" Margin="0,564,50,0" VerticalAlignment="Top" Height="35" Width="140" Click="OnZipfAnalysis" Grid.Column="1">
+        <Button x:Name="ZipfAnalysis" HorizontalAlignment="Right" Margin="0,0,50,94" Width="140" Click="OnZipfAnalysis" Height="35" VerticalAlignment="Bottom">
             <TextBlock TextAlignment="Center"><Run Text="Zipf Selection Analysis"/></TextBlock>
         </Button>
         <Button x:Name="Comp2But" HorizontalAlignment="Left" Margin="145,9,0,0" VerticalAlignment="Top" Height="40" Width="115" Click="OnComp2Click">
@@ -31,19 +31,39 @@
             <TextBlock TextAlignment="Center"><Run Text="Component 3"/><LineBreak/><Run Text="Keyword Stemming"/></TextBlock>
         </Button>
 
-        <Button x:Name="Comp5But" HorizontalAlignment="Left" Margin="955,199,0,0" VerticalAlignment="Top" Height="40" Width="115" Click="OnComp5Click">
-            <TextBlock TextAlignment="Center"><Run Text="Search"/></TextBlock>
-        </Button>
-
-        <Grid Name="MCGrid" Margin="920,106,40,375" MinHeight="28">
+        <Grid Name="MCGrid" Margin="0,106,30,0" Height="289" VerticalAlignment="Top" HorizontalAlignment="Right" Width="200">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition />
             </Grid.ColumnDefinitions>
             <Grid.RowDefinitions>
                 <RowDefinition Height="28" />
+                <RowDefinition Height="48" />
+                <RowDefinition Height="28" />
+                <RowDefinition Height="48" />
+                <RowDefinition Height="60" />
             </Grid.RowDefinitions>
-            <TextBlock x:Name="QueryFieldHint" Height="28" Grid.Row="0" Grid.Column="0" TextAlignment="Left" Background="White" Foreground="LightGray" Padding="6"  FontSize="14" VerticalAlignment="Top" >Query</TextBlock>
-            <TextBox x:Name="QueryField" VerticalContentAlignment="Center" HorizontalContentAlignment="left" Height="28" Grid.Row="0" Grid.Column="0" TextWrapping="Wrap" Background="Transparent" TextChanged="QueryBoxTextChanged"/>
+            <TextBlock TextAlignment="Left" Grid.Row="0"  Grid.Column="0"><Run Text="Query"/></TextBlock>
+            <TextBlock TextAlignment="Left" Grid.Row="2"  Grid.Column="0"><Run Text="Field"/></TextBlock>
+            <TextBlock x:Name="QueryFieldHint" Height="28" Grid.Row="1" Grid.Column="0" TextAlignment="Left" Background="White" Foreground="LightGray" Padding="6"  FontSize="14" VerticalAlignment="Top" >Query</TextBlock>
+            <TextBox x:Name="QueryField" Grid.Row="1"  Grid.Column="0" VerticalContentAlignment="Center" HorizontalContentAlignment="left" Height="28" TextWrapping="Wrap" Background="Transparent" TextChanged="QueryBoxTextChanged" VerticalAlignment="Top"/>
+
+            <Button x:Name="Comp5But" Grid.Row="4" Grid.Column="0" VerticalAlignment="Top" Height="40" Click="OnComp5Click" Margin="42,2,43,0">
+                <TextBlock TextAlignment="Center"><Run Text="Search"/></TextBlock>
+            </Button>
+
+            <ComboBox x:Name="FieldSelect" Grid.Row="3" Grid.Column="0" HorizontalAlignment="Center" Height="24" VerticalAlignment="Top" Width="{Binding ActualWidth, ElementName=MCGrid}" >
+                <ComboBoxItem x:Name="FieldSelectDefault">All</ComboBoxItem>
+                <ComboBoxItem>ID</ComboBoxItem>
+                <ComboBoxItem>Release Year</ComboBoxItem>
+                <ComboBoxItem>Title</ComboBoxItem>
+                <ComboBoxItem>Origin</ComboBoxItem>
+                <ComboBoxItem>Director</ComboBoxItem>
+                <ComboBoxItem>Cast</ComboBoxItem>
+                <ComboBoxItem>Genre</ComboBoxItem>
+                <ComboBoxItem>Wiki</ComboBoxItem>
+                <ComboBoxItem>Plot</ComboBoxItem>
+            </ComboBox>
         </Grid>
+
     </Grid>
 </Window>

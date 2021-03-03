@@ -32,6 +32,7 @@ namespace Assignment1GUI
             InitializeComponent();
             program = new Program(this);
             ResetButtonVisibilities(new bool[5] { true, false, false, false, false });
+            FieldSelect.SelectedItem = FieldSelectDefault; 
         }
 
         // Method code adapted from:
@@ -53,6 +54,8 @@ namespace Assignment1GUI
 
         private void OnComp1Click(object sender, RoutedEventArgs e)
         {
+            buttonVisibilities[0] = false;
+            ResetButtonVisibilities(buttonVisibilities);
             OpenFileDialog openFileDialog = new OpenFileDialog();
             if (openFileDialog.ShowDialog() == true)
             {
@@ -69,7 +72,9 @@ namespace Assignment1GUI
 
         private void OnComp2Click(object sender, RoutedEventArgs e)
         {
+            buttonVisibilities[0] = false;
             buttonVisibilities[1] = false;
+            ResetButtonVisibilities(buttonVisibilities);
             AddConsoleMessage("Proccessing documents, this may take a few minutes...", GUIColor.ERROR_COLOR);
             new Thread(() =>
             {
@@ -80,6 +85,9 @@ namespace Assignment1GUI
 
         private void OnComp3Click(object sender, RoutedEventArgs e)
         {
+            buttonVisibilities[0] = false;
+            buttonVisibilities[2] = false;
+            ResetButtonVisibilities(buttonVisibilities);
             AddConsoleMessage("Selecting Keywords for documents, this may take a few minutes...", GUIColor.ERROR_COLOR);
             new Thread(() =>
             {
@@ -90,6 +98,9 @@ namespace Assignment1GUI
 
         private void OnComp4Click(object sender, RoutedEventArgs e)
         {
+            buttonVisibilities[0] = false;
+            buttonVisibilities[3] = false;
+            ResetButtonVisibilities(buttonVisibilities);
             AddConsoleMessage("Stemming Keywords in documents, please wait a moment...", GUIColor.ERROR_COLOR);
             new Thread(() =>
             {
@@ -100,9 +111,11 @@ namespace Assignment1GUI
 
         private void OnComp5Click(object sender, RoutedEventArgs e)
         {
+            string title = ((ComboBoxItem)FieldSelect.SelectedItem).Content.ToString();
+            FieldName field = FieldNameEnum.FromString(title);
             MessageGrid.Children.Clear();
             _consoleRowCount = 0;
-            var queryResults = program.PerformSearch(QueryField.Text, FieldName.NONE);
+            var queryResults = program.PerformSearch(QueryField.Text, field);
             AddConsoleMessage("Query Results\n" + queryResults.Serialize());
             consoleViewer.ScrollToTop();
         }
@@ -116,6 +129,7 @@ namespace Assignment1GUI
                 Comp2But.IsEnabled = buttonVisibilities[1];
                 Comp3But.IsEnabled = buttonVisibilities[2];
                 Comp4But.IsEnabled = buttonVisibilities[3];
+                Comp5But.IsEnabled = buttonVisibilities[4];
                 ZipfAnalysis.IsEnabled = buttonVisibilities[1];
             });
         }

@@ -35,27 +35,38 @@ namespace Assignment1
 
         /// <summary>
         /// Assignment Step 1 - Full Indexing
-        /// This function parses the csv contents of a given URI through usage of MovieIndexService,
-        /// poviding uri points to a correctly formatted movie index csv. It then establishes a 
-        /// connection to ElasticSearch, and uses the ESService to document all parsed MovieIdndexes.
-        /// Upon indexing, response strings of ES's current indexes are printed to gui and a query is made
-        /// to ES for an index using MatchAll with the result output to gui using json serialization
+        /// This function initializes all documents. CVS file is mainly parsed through use of DataMunger class
+        /// which parses the csv contents into MovieIndex files in unison with CSVParser class and MovieIndex
+        /// having realised the IIndexable interface. All movie indexes are created with their full fields
+        /// having been parsed.
+        /// 
+        /// This and all proceeding steps follow a general sequence of operations:
+        /// 
+        ///     Processing performed on documents
+        ///     MovieIndexService created, has methods needed for indexing
+        ///     ElasticService created, creates and commincates with the database interfacing with MIService
+        ///     Top6 documents obtained following processing
+        ///     Output to GUI
+        ///     
+        /// The only difference being with searching, which does not perform any processing on the Corpus,
+        /// only the query.
+        /// 
         /// </summary>
         /// <param name="uri">The full absolute path to a file, must be a MovieIndex csv as per assignment</param>
         public bool PerformFullIndexing(string uri, int numDocs)
         {
             try
             {
+                // parses csv files
+                DataMunger munger = new DataMunger(uri);
+                List<MovieIndex> movieIndexList = munger.GetMovieIndexes();
+                movieIndexList.Sort();
+
                 // creates data services
                 var _miService = new MovieIndexService<MovieIndex>();
                 var _esService = new ElasticService<MovieIndexService<MovieIndex>, MovieIndex>(_miService);
                 _esService.InitDB();
                 _miService.NumDocuments = numDocs;
-
-                // parses csv files
-                DataMunger munger = new DataMunger(uri);
-                var movieIndexList = munger.GetMovieIndexes();
-                movieIndexList.Sort();
 
                 // uploads documents to database
                 _miService.AddDocuments(movieIndexList);
@@ -85,9 +96,16 @@ namespace Assignment1
 
         /// <summary>
         /// Assignment Step 2 - Tokenization
-        /// This function instantiates data services, calls the analyzer engine to generate the needed ProcessingPipelines
-        /// for each document in the corpus, uploads the processed data to database via services, and outputs the first
-        /// documents with ID 1-6 to gui
+        /// This function calls engines GenerateTokenizedPipes to process and tokenize the documents.
+        /// See engines method for implementation, however the ProcessingPipeline is the main class
+        /// responsible for the processing steps.
+        /// 
+        /// As with steps 1-4, data services are created, and data is uploaded via associated 
+        /// MovieIndexService and ElastiService's. Documents id'd 1-6 are output to gui
+        /// 
+        /// Steps 2-4 make use of helper function CreateMovieIndexChildClasses which transforms
+        /// existing MovieIndex objects in the AnalyzerEngine into MovieIndex sub classes such as 
+        /// MovieIndexTokenized or MovieIndexKeyWorded etc
         /// </summary>
         public bool PerformTokenization()
         {
@@ -99,7 +117,7 @@ namespace Assignment1
                 elasticService.InitDB();
 
                 //processes documents and uploads to ElasticSearch
-                engine.GenerateTokenizatedPipes();
+                engine.GenerateTokenizedPipes();
                 var processedDocs = SortedIndexDictToList(CreateMovieIndexChildClasses(tokenizedService));
                 tokenizedService.UploadData(elasticService);
 
@@ -123,25 +141,28 @@ namespace Assignment1
 
         /// <summary>
         /// Assignment Step 3 - Keyword Selection
-        /// This function instantiates the data services, calls analyser engine methods for document processing used in this
-        /// step (stop word removal with zipf analysis, phrase generation, removal of very infrequent words, IDF weighting, 
-        /// and keyword selection), uploads processed documents to database, and outputs first documents ID'd 1-6 to gui
+        /// This function performs selection by calling analyser engine for stop word removal using zipf analysis, 
+        /// phrase generation, removal of very infrequent words, IDF weighting, 
+        /// and keyword selection. 
+        /// 
+        /// Processed documents are then uploaded via data services and id's 1-6 are output
+        /// to the gui. See engine methods, the first 5 operations, for main implementations
         /// </summary>
         public bool PerformKeywordSelection()
         {
             try
             {
-                // creates database services
-                var keywordedService = new MovieIndexServiceProcessed<MovieIndexKeyWords>();
-                var elasticService = new ElasticService<MovieIndexService<MovieIndexKeyWords>, MovieIndexKeyWords>(keywordedService);
-                elasticService.InitDB();
-
                 // processes documents for this steps
                 engine.RemoveStopWords();
                 engine.GeneratePhrases();
                 engine.RemoveVeryInfrequentWords();
                 engine.CalculateIDFs();
                 engine.AddKeywordsToPipes();
+
+                // creates database services
+                var keywordedService = new MovieIndexServiceProcessed<MovieIndexKeyWords>();
+                var elasticService = new ElasticService<MovieIndexService<MovieIndexKeyWords>, MovieIndexKeyWords>(keywordedService);
+                elasticService.InitDB();
 
                 // indexes documents and uploads to ElasticSearch
                 var indexedDocs = SortedIndexDictToList(CreateMovieIndexChildClasses(keywordedService));
@@ -167,7 +188,11 @@ namespace Assignment1
         }
 
         /// <summary>
-        /// Assignment Step 4 - 
+        /// Assignment Step 4 - Stemnming
+        /// Firstly a dict of MovieIndexKeyWordStemmed is created with helper method, these store
+        /// unstemmed keywords. Then the documents are processed in the engine, and stemmed keywords are
+        /// added to all documents in the dict. Stemmed documents are uploaded to elasticsearch and then
+        /// top 6 output to gui
         /// </summary>
         public bool PerformStemming()
         {
@@ -208,8 +233,16 @@ namespace Assignment1
                 gui?.AddConsoleMessage(e.Message, IGUIAdapter.GUIColor.ERROR_COLOR);
                 return false;
             }
-}
+        }
 
+        /// <summary>
+        /// Assignment Step 5 - Searching
+        /// Firstly, two the query is processed twice using ProcessingPipelines on the query.
+        /// 1 is needed 
+        /// </summary>
+        /// <param name="searchString"></param>
+        /// <param name="fieldType"></param>
+        /// <returns></returns>
         public MovieIndexMatches PerformSearch(string searchString, FieldName fieldType = FieldName.NONE)
         {
             try

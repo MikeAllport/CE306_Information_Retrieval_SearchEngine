@@ -44,6 +44,7 @@ namespace Assignment1
         public BagOfWords CorpusBOW { get { return _corpusBOW; } }
         private StopWordGenerator _stopWordGenerator;
         public StopWordGenerator StopWordGenerator { get { return _stopWordGenerator; } }
+        public List<string> StopWords { get; set; } = new List<string>();
 
         public AnalyserEngine(Dictionary<int, MovieIndex> unProcessedIndexes, 
             IGUIAdapter.Adapter gui,
@@ -58,7 +59,7 @@ namespace Assignment1
         /// Main method for generating processed pipes from the unprocessed MovieIndexes
         /// generates a pipe with builder to process, adds pipe and id to IndexIDDict
         /// </summary>
-        public void GenerateTokenizatedPipes()
+        public void GenerateTokenizedPipes()
         {
             foreach (var entry in UnProcessedIndexes)
             {
@@ -86,6 +87,7 @@ namespace Assignment1
                 pipe.Value.RemoveTokens(stopWords);
             }
             CorpusBOW.RemoveTerms(stopWords);
+            StopWords = stopWords;
         }
 
         /// <summary>

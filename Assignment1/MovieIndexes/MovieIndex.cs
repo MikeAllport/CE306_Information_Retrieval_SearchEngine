@@ -9,11 +9,22 @@ using Nest;
 
 namespace Assignment1
 {
+    // FieldName and FieldNameEnum's are helper classes for MovieIndex, for MovieIndex see below FieldNameEnum class
+    // see end of file for enum helper class methods for tostring/fromstring
     public enum FieldName
     {
         ID, RELEASEYEAR, TITLE, ORIGIN, DIRECTOR, CAST, GENRE, WIKI, PLOT,
         NONE
+
     }
+    
+
+    /// <summary>
+    /// MovieIndex is the main class for storing full text movie index attributes, a data holder. This class
+    /// implements ICSVEntity such that the CSVParser can interface with it to construct an index. It also
+    /// implements JsonConverty for pretty string output, IComparable for being sorted in a set, and IEqualityComparer
+    /// for comparison. It also overrides Hash methods.
+    /// </summary>
     [JsonConverter(typeof(MovieIndex))]
     public class MovieIndex: 
         JsonConverter,
@@ -21,7 +32,7 @@ namespace Assignment1
         IComparable<MovieIndex>, 
         IEqualityComparer<MovieIndex>
     {
-        // json attribute name constants
+        // json attribute name/key constants
         private const string ID_KEY = "ID",
             RELEASEY_KEY = "ReleaseYear",
             TITLE_KEY = "Title",
@@ -31,7 +42,8 @@ namespace Assignment1
             GENRE_KEY = "Genre",
             WIKI_KEY = "Wiki",
             PLOT_KEY = "Plot";
-        public int Complexity = 0;
+
+        // fields typed for auto mapping in Nest
         [Number(Name = ID_KEY)]
         public int ID { get; set; } = -1;
         [Number(Name = RELEASEY_KEY)]
@@ -51,6 +63,10 @@ namespace Assignment1
         [Text(Name = PLOT_KEY)]
         public string Plot { get; set; } = "";
 
+        /// <summary>
+        /// Copy constructor
+        /// </summary>
+        /// <param name="other"></param>
         public MovieIndex(MovieIndex other)
         {
             this.ID = other.ID;
@@ -66,6 +82,11 @@ namespace Assignment1
 
         public MovieIndex() { }
 
+        /// <summary>
+        /// Similar to Copy constructor, but needed for children classes with a pipeline
+        /// </summary>
+        /// <param name="other"></param>
+        /// <param name="pipe"></param>
         public MovieIndex(MovieIndex other, ProcessingPipeline pipe)
         {
             this.ID = other.ID;
@@ -79,9 +100,13 @@ namespace Assignment1
             this.Plot = other.Plot;
         }
 
+        /// <summary>
+        /// Returns the full text of an index
+        /// </summary>
+        /// <returns>full text</returns>
         public string GetFullText()
         {
-            return $"{ReleaseYear} {Title} {Origin} {Director} {Cast} {Genre} {Wiki} {Plot}";
+            return $"{ReleaseYear} {Title} {Origin} {Director} {Cast} {Genre} {Wiki}\n{Plot}";
         }
 
         /// <summary>
@@ -158,8 +183,6 @@ namespace Assignment1
         /// </summary>
         public int CompareTo([AllowNull] MovieIndex other)
         {
-            if (other.Complexity != this.Complexity)
-                return other.Complexity - this.Complexity;
             return other.ReleaseYear - this.ReleaseYear;
         }
 
@@ -247,6 +270,74 @@ namespace Assignment1
                 return JsonConvert.DeserializeObject<MovieIndex>(jsonSerialized);
             }
             catch (Exception) { return null; }
+        }
+    }
+
+    // enum helper class
+    public class FieldNameEnum
+    {
+        public static FieldName FromString(string value)
+        {
+            switch (value)
+            {
+                case "ID":
+                    return FieldName.ID;
+                case "Release Year":
+                    return FieldName.RELEASEYEAR;
+                case "Title":
+                    return FieldName.TITLE;
+                case "Origin":
+                    return FieldName.ORIGIN;
+                case "Director":
+                    return FieldName.DIRECTOR;
+                case "Cast":
+                    return FieldName.CAST;
+                case "Genre":
+                    return FieldName.GENRE;
+                case "Wiki":
+                    return FieldName.WIKI;
+                case "Plot":
+                    return FieldName.PLOT;
+                default:
+                    return FieldName.NONE;
+            }
+            return FieldName.NONE;
+        }
+
+        public static string ToString(FieldName name)
+        {
+            switch (name)
+            {
+                case FieldName.ID:
+                    return "ID";
+                    break;
+                case FieldName.RELEASEYEAR:
+                    return "Release Year";
+                    break;
+                case FieldName.TITLE:
+                    return "Title";
+                    break;
+                case FieldName.ORIGIN:
+                    return "Origin";
+                    break;
+                case FieldName.DIRECTOR:
+                    return "Director";
+                    break;
+                case FieldName.CAST:
+                    return "Cast";
+                    break;
+                case FieldName.GENRE:
+                    return "Genre";
+                    break;
+                case FieldName.WIKI:
+                    return "Wiki";
+                    break;
+                case FieldName.PLOT:
+                    return "Plot";
+                    break;
+                default:
+                    return "All";
+            }
         }
     }
 }

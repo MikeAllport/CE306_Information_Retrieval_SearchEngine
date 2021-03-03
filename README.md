@@ -8,9 +8,7 @@ Github clones of the original library gits have been included for the purpose of
 [1] J. Newton-King, Newtonsoft.Json. 2019.
 [2] Elasticsearch.Net. Elastic and contributors, v7.11.0, 2021.
 [3] NEST. Elastic and conrtibutors, v7.11.0, 2021.
-[4] sharpNlp (OpenNLP in this project), CodePlex, v1.3.5, 2019
-[5] LemmaGenerator, Alex Point, v1.1.0, 2014
 
 ## DataFile reference
 Stemming uses a pre-compiled list of stem words retrieved from below, author unknown, slightly modified
-[6]
+[6] author unknown, http://snowball.tartarus.org/algorithms/english/stemmer.html [Accessed: 01/03/2021]
