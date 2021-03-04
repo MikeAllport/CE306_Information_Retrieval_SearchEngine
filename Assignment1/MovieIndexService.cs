@@ -19,7 +19,7 @@ namespace Assignment1
     /// Movie index types can be used
     /// </summary>
     [ElasticsearchType(RelationName = "full_text")]
-    public class MovieIndexService<T> : IIndexableDB, IDocumentable<MovieIndexService<T>, T>
+    public class MovieIndexService<T> : IIndexableDB
         where T : MovieIndex
     {
         public static readonly string IndexTitle = "movies-full-text"; // index name

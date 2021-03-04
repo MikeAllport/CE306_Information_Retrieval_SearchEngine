@@ -26,6 +26,7 @@ namespace Assignment1
     /// for comparison. It also overrides Hash methods.
     /// </summary>
     [JsonConverter(typeof(MovieIndex))]
+    [ElasticsearchType(RelationName="MovieIndex")]
     public class MovieIndex: 
         JsonConverter,
         ICSVEntity, 

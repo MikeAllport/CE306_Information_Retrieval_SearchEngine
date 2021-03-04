@@ -9,32 +9,46 @@ using System.Collections;
 
 namespace Assignment1
 {
+    /// <summary>
+    /// Used to differentiate different stop word types. This was going to be an option provided
+    /// to user, but ran out of time
+    /// </summary>
     public enum StopWordDetectionType
     {
         MEAN, LOG_MIDPOINT, INTER_QUARTILE, TOP_N
     }
+
+    /// <summary>
+    /// Settings class for varying options the engine could have used. Currently, it is only
+    /// used with default settings. StopWordDetection type, whether to use phrases,  and
+    /// the length of NGrams to use in phrases
+    /// </summary>
     public class AnalyserEngineSettings
     {
         public StopWordDetectionType StopType;
         public int StopWordN;
         public bool UseNgramPhraseDetection;
         public int NGramNum;
-        public double topNPercentKeywords;
         public AnalyserEngineSettings(
             StopWordDetectionType type = LOG_MIDPOINT,
             int StopWordN = -1,
             bool UseNgram = true,
-            int NGramNum = 3,
-            double topNPercentKeywords = 0.8
+            int NGramNum = 3
             )
         {
             this.StopType = type;  this.StopWordN = StopWordN;  this.UseNgramPhraseDetection = UseNgram;
-            this.NGramNum = NGramNum; this.topNPercentKeywords = topNPercentKeywords;
+            this.NGramNum = NGramNum;
         }
     }
 
     public class AnalyserEngine
     {
+        /// <summary>
+        /// This is the main class responsible for the Corpus and all logic for processing instructions.
+        /// This uses a BagOfWords object for tracking all words, frequency, document frequency etc.
+        /// This also contained the raw pipelines at all stages.
+        /// The list of stop words is tracked once that has been generated.
+        /// </summary>
         public AnalyserEngineSettings settings;
         private IGUIAdapter.Adapter gui;
         public Dictionary<int, ProcessingPipeline> IndexIDDict { get; } = new Dictionary<int, ProcessingPipeline>();
@@ -56,6 +70,7 @@ namespace Assignment1
         }
 
         /// <summary>
+        /// Used in Step 2 - Tokenization
         /// Main method for generating processed pipes from the unprocessed MovieIndexes
         /// generates a pipe with builder to process, adds pipe and id to IndexIDDict
         /// </summary>
@@ -73,10 +88,12 @@ namespace Assignment1
                 IndexIDDict[entry.Key] = pipeline;
                 CorpusBOW.AddTerms(pipeline.Tokens);
             }
+            _stopWordGenerator = new StopWordGenerator(gui, CorpusBOW);
         }
 
         /// <summary>
-        /// RemoveStopWords gets a generated stop word list and calls each pipe to remove the terms and
+        /// used in step 3 - stopword removal
+        /// RemoveStopWords gets a generated stop word list and calls each pipe to remove the terms, and
         /// calls the CorpusBOW to remove the terms
         /// </summary>
         public void RemoveStopWords()
@@ -91,13 +108,14 @@ namespace Assignment1
         }
 
         /// <summary>
+        /// Used in step 3 - keyword selection
         /// GenerateStopWords calls the StopWordGenerator method associated with the settings detection type
-        /// to generate a list of stop words
+        /// to generate a list of stop words. 
+        /// The main class to generate the stopwords is StopWordGenerator
         /// </summary>
         /// <returns>List of the stop words generated</returns>
         private List<string> GenerateStopWords()
         {
-            _stopWordGenerator = new StopWordGenerator(gui, CorpusBOW);
             List<string> stopWords;
             switch (settings.StopType)
             {
@@ -120,6 +138,7 @@ namespace Assignment1
 
 
         /// <summary>
+        /// step 3 - keyword selection
         /// Removes very infrequently occuring words from corpus and pipes, ignoring infrequent words
         /// that occure in important fields
         /// </summary>
@@ -134,6 +153,7 @@ namespace Assignment1
         }
 
         /// <summary>
+        /// used in step 3
         /// Attains list of words that appear very infrequently, 1 occurence in this occasion.
         /// This ignores any words that appear infrequently but occur in important fields. To achieve
         /// this a second pass through is made over all documents to retrieve important fields tokens
@@ -169,6 +189,7 @@ namespace Assignment1
         }
 
         /// <summary>
+        /// used in step 3
         /// Adds NGrams from pipes of word length 1-settings.NGramNum for all pipes
         /// </summary>
         public void GeneratePhrases()
@@ -183,6 +204,21 @@ namespace Assignment1
         }
 
         /// <summary>
+        /// used in step 3
+        /// Assigns each word in corpus's bow their associated IDF value
+        /// </summary>
+        public void CalculateIDFs()
+        {
+            foreach (var term in CorpusBOW.Terms)
+            {
+                double IDF = Math.Log(IndexIDDict.Count / (float)CorpusBOW.Terms[term.Key].DocFreq);
+                CorpusBOW.Terms[term.Key].IDF = IDF;
+            }
+            CorpusBOW.IDFed = true;
+        }
+
+        /// <summary>
+        /// used in step 3
         /// Calls each pipe to place tokens into their _keywords list
         /// </summary>
         public void AddKeywordsToPipes()
@@ -193,6 +229,9 @@ namespace Assignment1
             }
         }
 
+        /// <summary>
+        /// used in step 4 - Keyword generation
+        /// </summary>
         public void GenerateKeywordStems()
         {
             foreach (KeyValuePair<int, ProcessingPipeline> idPipePair in IndexIDDict)
@@ -201,25 +240,14 @@ namespace Assignment1
             }
         }
 
-
         /// <summary>
-        /// Assigns each word in corpus's bow their associated IDF value
-        /// Knowledge for calculating IDF gained from lectures, but combined with:
-        /// https://janav.wordpress.com/2013/10/27/tf-idf-and-cosine-similarity/
-        /// This introduces normalization such that all TFIDFs will fall between 1 and 0, and as
-        /// such multiplying a fraction by a fraction would lead to incorrect results so will always
-        /// need to be 1+
+        /// used in step 5
+        /// Calculates the cosine similarity of two input documents, doc1 generally being a query,
+        /// based upon the current corpus
         /// </summary>
-        public void CalculateIDFs()
-        {
-            foreach (var term in CorpusBOW.Terms)
-            {
-                double IDF = 1 + Math.Log(IndexIDDict.Count / (float)CorpusBOW.Terms[term.Key].DocFreq);
-                CorpusBOW.Terms[term.Key].IDF = IDF;
-            }
-            CorpusBOW.IDFed = true;
-        }
-
+        /// <param name="doc1">first document to be compared</param>
+        /// <param name="doc2">second document to be compared against first</param>
+        /// <returns>double, cosine similarity, or NaN if zero matches</returns>
         public double CosineSimilarity(BagOfWords doc1, BagOfWords doc2)
         {
             if (!CorpusBOW.IDFed)

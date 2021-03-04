@@ -14,6 +14,8 @@ using SimpleWPFChart;
 
 using System.Threading;
 using System.Windows.Threading;
+using System.Windows.Input;
+using System.ComponentModel;
 
 namespace Assignment1GUI
 {
@@ -25,10 +27,11 @@ namespace Assignment1GUI
         private bool[] buttonVisibilities;
         private int _consoleRowCount = 0;
         private Program program;
+        bool running;
 
         public MainWindow()
         {
-
+            running = true;
             InitializeComponent();
             program = new Program(this);
             ResetButtonVisibilities(new bool[5] { true, false, false, false, false });
@@ -59,11 +62,21 @@ namespace Assignment1GUI
             OpenFileDialog openFileDialog = new OpenFileDialog();
             if (openFileDialog.ShowDialog() == true)
             {
+                SetMouseWait();
                 AddConsoleMessage("Indexing full text documents, please wait a moment...", GUIColor.ERROR_COLOR);
                 new Thread(()=> {
-                    if (program.PerformFullIndexing(openFileDialog.FileName))
+                    bool succ = program.PerformFullIndexing(openFileDialog.FileName);
+                    if (running)
                     {
-                        ResetButtonVisibilities(new bool[] { true, true, false, false, false });
+                        if (succ)
+                        {
+                            ResetButtonVisibilities(new bool[] { true, true, false, false, false });
+                        }
+                        else
+                        {
+                            ResetButtonVisibilities(new bool[] { true, false, false, false, false });
+                        }
+                        SetMouseNorm();
                     }
                 }).Start();
             }
@@ -75,11 +88,19 @@ namespace Assignment1GUI
             buttonVisibilities[0] = false;
             buttonVisibilities[1] = false;
             ResetButtonVisibilities(buttonVisibilities);
+            SetMouseWait();
             AddConsoleMessage("Proccessing documents, this may take a few minutes...", GUIColor.ERROR_COLOR);
             new Thread(() =>
             {
-                if (program.PerformTokenization())
-                    ResetButtonVisibilities(new bool[] { true, false, true, false, false });
+                bool succ = program.PerformTokenization();
+                if (running)
+                {
+                    if (succ)
+                        ResetButtonVisibilities(new bool[] { true, false, true, false, false });
+                    else
+                        ResetButtonVisibilities(new bool[] { true, false, false, false, false });
+                    SetMouseNorm();
+                }
             }).Start();
         }
 
@@ -88,11 +109,19 @@ namespace Assignment1GUI
             buttonVisibilities[0] = false;
             buttonVisibilities[2] = false;
             ResetButtonVisibilities(buttonVisibilities);
+            SetMouseWait();
             AddConsoleMessage("Selecting Keywords for documents, this may take a few minutes...", GUIColor.ERROR_COLOR);
             new Thread(() =>
             {
-                if (program.PerformKeywordSelection())
-                    ResetButtonVisibilities(new bool[] { true, false, false, true, false });
+                bool succ = program.PerformKeywordSelection();
+                if (running)
+                {
+                    if (succ)
+                        ResetButtonVisibilities(new bool[] { true, false, false, true, false });
+                    else
+                        ResetButtonVisibilities(new bool[] { true, false, false, false, false });
+                    SetMouseNorm();
+                }
             }).Start();
         }
 
@@ -101,11 +130,18 @@ namespace Assignment1GUI
             buttonVisibilities[0] = false;
             buttonVisibilities[3] = false;
             ResetButtonVisibilities(buttonVisibilities);
+            SetMouseWait();
             AddConsoleMessage("Stemming Keywords in documents, please wait a moment...", GUIColor.ERROR_COLOR);
             new Thread(() =>
             {
-                if (program.PerformStemming())
-                    ResetButtonVisibilities(new bool[] { true, false, false, false, true });
+                bool succ = program.PerformStemming();
+                if (running)
+                {
+                    if (succ)
+                        ResetButtonVisibilities(new bool[] { true, false, false, false, true });
+                    else
+                        ResetButtonVisibilities(new bool[] { true, false, false, false, false });
+                }
             }).Start();
         }
 
@@ -115,14 +151,27 @@ namespace Assignment1GUI
             FieldName field = FieldNameEnum.FromString(title);
             MessageGrid.Children.Clear();
             _consoleRowCount = 0;
-            var queryResults = program.PerformSearch(QueryField.Text, field);
-            AddConsoleMessage("Query Results\n" + queryResults.Serialize());
-            consoleViewer.ScrollToTop();
+            AddConsoleMessage("Querying");
+            SetMouseWait();
+            new Thread(() =>
+            {
+                Dispatcher.Invoke(() =>
+                {
+                    var queryResults = program.PerformSearch(QueryField.Text, field);
+                    if (running)
+                    {
+                        AddConsoleMessage("Query Results\n" + queryResults.Serialize());
+                        consoleViewer.ScrollToTop();
+                        SetMouseNorm();
+                    }
+                });
+            }).Start();
+
         }
 
         private void ResetButtonVisibilities(bool[] buttons)
         {
-            Dispatcher.Invoke(() => 
+            Dispatcher.Invoke(() =>
             {
                 buttonVisibilities = buttons;
                 Comp1But.IsEnabled = buttonVisibilities[0];
@@ -130,7 +179,7 @@ namespace Assignment1GUI
                 Comp3But.IsEnabled = buttonVisibilities[2];
                 Comp4But.IsEnabled = buttonVisibilities[3];
                 Comp5But.IsEnabled = buttonVisibilities[4];
-                ZipfAnalysis.IsEnabled = buttonVisibilities[1];
+                ZipfAnalysis.IsEnabled = buttonVisibilities[2];
             });
         }
 
@@ -140,36 +189,40 @@ namespace Assignment1GUI
             GUIColor? backgroundColor = null
             )
         {
-            this.Dispatcher.Invoke(() =>
+            try
             {
-                SolidColorBrush forground = GetBrush(forgroundColor, Brushes.Black),
-                    background = GetBrush(backgroundColor, Brushes.White);
+                this.Dispatcher.Invoke(() =>
+                {
+                    SolidColorBrush forground = GetBrush(forgroundColor, Brushes.Black),
+                        background = GetBrush(backgroundColor, Brushes.White);
 
-                RowDefinition row = new RowDefinition();
-                TextBox textToAdd = new TextBox();
-                textToAdd.FontFamily = new FontFamily("Consolas");
-                textToAdd.Text = "> " + message;
+                    RowDefinition row = new RowDefinition();
+                    TextBox textToAdd = new TextBox();
+                    textToAdd.FontFamily = new FontFamily("Consolas");
+                    textToAdd.Text = "> " + message;
 
-                textToAdd.Background = background;
-                textToAdd.Foreground = forground;
-                textToAdd.FontStretch = FontStretches.UltraExpanded;
-                textToAdd.TextAlignment = TextAlignment.Left;
-                textToAdd.TextWrapping = TextWrapping.Wrap;
+                    textToAdd.Background = background;
+                    textToAdd.Foreground = forground;
+                    textToAdd.FontStretch = FontStretches.UltraExpanded;
+                    textToAdd.TextAlignment = TextAlignment.Left;
+                    textToAdd.TextWrapping = TextWrapping.Wrap;
 
-                textToAdd.Background = new SolidColorBrush(Colors.White) { Opacity = 0 };
-                textToAdd.BorderThickness = new Thickness(0);
-                textToAdd.IsReadOnly = true;
-                textToAdd.TextWrapping = TextWrapping.Wrap;
+                    textToAdd.Background = new SolidColorBrush(Colors.White) { Opacity = 0 };
+                    textToAdd.BorderThickness = new Thickness(0);
+                    textToAdd.IsReadOnly = true;
+                    textToAdd.TextWrapping = TextWrapping.Wrap;
 
-                int rows = Regex.Matches(message, "\n").Count;
-                if (rows == 0)
-                    rows = 1;
-                row.MinHeight = 20;
-                MessageGrid.RowDefinitions.Add(row);
-                MessageGrid.Children.Add(textToAdd);
-                Grid.SetRow(textToAdd, _consoleRowCount++);
-                consoleViewer.ScrollToBottom();
-            });
+                    int rows = Regex.Matches(message, "\n").Count;
+                    if (rows == 0)
+                        rows = 1;
+                    row.MinHeight = 20;
+                    MessageGrid.RowDefinitions.Add(row);
+                    MessageGrid.Children.Add(textToAdd);
+                    Grid.SetRow(textToAdd, _consoleRowCount++);
+                    consoleViewer.ScrollToBottom();
+                });
+            }
+            catch (Exception ignore) { }
         }
 
         private static SolidColorBrush GetBrush(GUIColor? colGUI, SolidColorBrush defaultBrush)
@@ -203,6 +256,29 @@ namespace Assignment1GUI
             SimpleWPFChart.MainWindow chart = new SimpleWPFChart.MainWindow(input.Item3);
             chart.SetChart(input);
             chart.Show();
+        }
+
+        public void SetMouseNorm()
+        {
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                if (this == null)
+                    return;
+                Mouse.OverrideCursor = Cursors.Arrow;
+            });
+        }
+
+        public void SetMouseWait()
+        {
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                Mouse.OverrideCursor = Cursors.AppStarting;
+            });
+        }
+
+        void OnClose(object sender, CancelEventArgs e)
+        {
+            running = false;
         }
     }
 }

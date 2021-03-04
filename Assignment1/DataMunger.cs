@@ -7,6 +7,10 @@ using CsvHelper;
 
 namespace Assignment1
 {
+    /// <summary>
+    /// DataMungers main responsibility is to load a CSV file and instantiate
+    /// CSVParser to extract MovieIndexes
+    /// </summary>
     class DataMunger
     {
         private string _filename;

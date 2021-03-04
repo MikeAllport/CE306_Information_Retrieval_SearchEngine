@@ -10,6 +10,20 @@ namespace Assignment1
 {
     public class Program
     {
+        /// <summary>
+        /// Program contains the main logic for going through the assignment steps sequence. Most processing operations
+        /// are done through the AnalyzerEngine class and ProcessingPipeline. All database operations are done through the ElasticService class,
+        /// but this is generalized and interfaces with MovieIndexService class and sub class (at the bottom of the movieindexservice class).
+        /// The main class that processes CSV is CSVParser and DataMunger class, the parser interfaces with the MovieIndex class
+        /// to instantiate them.
+        /// 
+        /// This has been a really fun assignment. Although I have no idea if this is how you want it orchestrated. I don't use
+        /// ElasticSearch in depth. It is mainly a data store. I directly implement Zipf for stop word removal, 
+        /// a custom BagOfWords, IDF feature vectors, CosineSimilarity for ranking matches. No external libraries have been
+        /// used for processing, all regex expressions. 
+        /// 
+        /// Have fun marking! 
+        /// </summary>
         public static readonly string SOLUTION_DIR = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..\\..\\..\\..\\"));
         public static readonly string DEFAULT_DATA_FILE = SOLUTION_DIR + "documents.csv";
         private const int _numDocuments = 1000;
@@ -35,10 +49,9 @@ namespace Assignment1
 
         /// <summary>
         /// Assignment Step 1 - Full Indexing
-        /// This function initializes all documents. CVS file is mainly parsed through use of DataMunger class
-        /// which parses the csv contents into MovieIndex files in unison with CSVParser class and MovieIndex
-        /// having realised the IIndexable interface. All movie indexes are created with their full fields
-        /// having been parsed.
+        /// This function initializes all documents. CSV file are mainly parsed in DataMunger through use of CSVParser
+        /// which instantiates MovieIndex classes  having realised the ICSVEntity interface. All movie indexes 
+        /// are created with their full fields having been parsed.
         /// 
         /// This and all proceeding steps follow a general sequence of operations:
         /// 
@@ -52,7 +65,7 @@ namespace Assignment1
         /// only the query.
         /// 
         /// </summary>
-        /// <param name="uri">The full absolute path to a file, must be a MovieIndex csv as per assignment</param>
+        /// <param name="uri">The full absolute path to csv file, must be a MovieIndex csv as per assignment</param>
         public bool PerformFullIndexing(string uri, int numDocs)
         {
             try
@@ -238,10 +251,26 @@ namespace Assignment1
         /// <summary>
         /// Assignment Step 5 - Searching
         /// Firstly, two the query is processed twice using ProcessingPipelines on the query.
-        /// 1 is needed 
+        /// 1 is needed pre keywording for cosine similarity comparison and 1 needed post
+        /// to obtain results from.
+        /// 
+        /// Data services are then instantiated and the query made.
+        /// 
+        /// For each match, the cosine similarity is obtained between the query and the match using
+        /// AnalyzerEngine methods. If FieldType matching is required, helper functions are used to see
+        /// if the match contains any results in the given field. If not, they are just added as normal
+        /// 
+        /// The matches are then sorted and id'd in descending order of relevance.
+        /// 
+        /// Matches are then returned for the gui to output to console
+        /// 
+        /// Even if field match query given, this still returns results where the query has matched anywhere
+        /// else in the body, just output to the bottom of the matches and has field 'FieldMatched=false' set
+        /// The field match is an OR search, so any split strings in the query can be matched to the field. However,
+        /// matches with more words in the field are given greater relevance thanks to cosine similarity :)
         /// </summary>
-        /// <param name="searchString"></param>
-        /// <param name="fieldType"></param>
+        /// <param name="searchString">The query string</param>
+        /// <param name="fieldType">What field to match, if NONE then matching any field</param>
         /// <returns></returns>
         public MovieIndexMatches PerformSearch(string searchString, FieldName fieldType = FieldName.NONE)
         {
@@ -287,8 +316,8 @@ namespace Assignment1
                         .Normalize()
                         .Tokenize()
                         .Build();
-                    double queryDocSimilarity = engine.CosineSimilarity(rawProcessedQueryPipe.TermsAndStats, matchPipe.TermsAndStats);
 
+                    double queryDocSimilarity = engine.CosineSimilarity(rawProcessedQueryPipe.TermsAndStats, matchPipe.TermsAndStats);
                     // processes match, checking if fields match if user selected a field in gui
                     MovieIndexQueryMatch processedMatch;
                     if (fieldType != FieldName.NONE)
@@ -321,7 +350,7 @@ namespace Assignment1
         }
 
         /// <summary>
-        /// Detects if any of the terms in the users query matches a given match's field of a given field
+        /// Detects if any of the terms in the users query is in a given match's field of a given field
         /// name
         /// </summary>
         /// <param name="name">The field to check if query matches</param>
@@ -371,19 +400,22 @@ namespace Assignment1
         }
 
         /// <summary>
-        /// Generates the analysis bar charts for Zipf stopword removal in gui
+        /// Generates the zipf analysis bar charts for Zipf stopword removal in gui
         /// </summary>
         public void RunZipfsSelectionAnalysis()
         {
-            gui?.SetChart(engine.StopWordGenerator.GetZipfsNormStats());
-            gui?.SetChart(engine.StopWordGenerator.GetZipfsLogStats());
-            gui?.SetChart(engine.StopWordGenerator.SelectStopWordsStandardDev());
-            gui?.SetChart(engine.StopWordGenerator.SelectStopWordsMedianIQRange());
-            gui?.SetChart(engine.StopWordGenerator.SelectStopWordsLogMidPoint());
+            gui?.SetChart(engine.StopWordGenerator?.GetZipfsNormStats());
+            gui?.SetChart(engine.StopWordGenerator?.GetZipfsLogStats());
+            gui?.SetChart(engine.StopWordGenerator?.SelectStopWordsStandardDev());
+            gui?.SetChart(engine.StopWordGenerator?.SelectStopWordsMedianIQRange());
+            gui?.SetChart(engine.StopWordGenerator?.SelectStopWordsLogMidPoint());
         }
 
         /// <summary>
-        /// Creates an ID keyed dictionary of MovieIndex child objects of type T
+        /// Creates an ID keyed dictionary of MovieIndex child objects of type T by getting
+        /// all MovieIndex parents from the AnalyzerEngine, creating child object with the associated pipe
+        /// for the child object to extract data from the pipes, see any child constructor for this implementation
+        /// under the folder MovieIndexes
         /// </summary>
         /// <typeparam name="T">The type of MovieIndex child class to create</typeparam>
         /// <param name="miservice">The movie index service containing all documents of type T</param>

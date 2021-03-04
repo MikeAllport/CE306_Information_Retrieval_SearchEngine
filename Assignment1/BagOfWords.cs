@@ -20,7 +20,6 @@ namespace Assignment1
     {
         private SortedDictionary<string, WordStats> _terms = new SortedDictionary<string, WordStats>();
         public SortedDictionary<string, WordStats> Terms { get { return _terms; } }
-        public bool NormalizedTF { get; set; } = false;
         public bool IDFed { get; set; } = false;
 
         private SortedList<string, WordStats> listTerms = null;
@@ -56,7 +55,6 @@ namespace Assignment1
             {
                 Terms[uniqueTerm].DocFreq += 1;
             }
-            NormalizedTF = false;
             IDFed = false;
         }
 
@@ -71,7 +69,6 @@ namespace Assignment1
                 if (Terms.ContainsKey(term))
                     Terms.Remove(term);
             }
-            NormalizedTF = false;
         }
 
         /// <summary>
@@ -81,8 +78,6 @@ namespace Assignment1
         /// <returns>TFIDF feature vector</returns>
         public double[] GetDocNormTFIDFVector(BagOfWords documentsBOW)
         {
-            if (!documentsBOW.NormalizedTF)
-                documentsBOW.AssignTFNorms();
             if (!IDFed)
                 throw new Exception("Error BagOfWords::GetGeneralizedVector, attempt to retrieve TFIDF on "
                     + "BOW without having assigned IDFs to corpus");
@@ -98,64 +93,12 @@ namespace Assignment1
                 int termIndex = listTerms.IndexOfKey(termStatsPair.Key);
                 if (termIndex >= 0)
                 {
-                    docsNormalizedTfVector[termIndex] = termStatsPair.Value.NormalizedTF;
+                    docsNormalizedTfVector[termIndex] = termStatsPair.Value.TermFreq;
                     corpusIDFVector[termIndex] = Terms[termStatsPair.Key].IDF;
                 }
             }
             // return TF * IDF of feature vectors
             return VectorOps.Multiplication(docsNormalizedTfVector, corpusIDFVector);
         }
-
-
-        /// <summary>
-        /// Assigns normalized term frequency to each word in Terms
-        /// normalized is TF/NumTermsInDoc
-        /// </summary>
-        /// Knowledge for normalization gained from:
-        /// https://janav.wordpress.com/2013/10/27/tf-idf-and-cosine-similarity/
-        /// This makes it so TFIDF does not favour documents with high amount of words
-        private void AssignTFNorms()
-        {
-            foreach(KeyValuePair<string, WordStats> termStatPair in Terms)
-            {
-                WordStats termStats = termStatPair.Value;
-                termStats.NormalizedTF = termStats.TermFreq / (double)Terms.Count;
-            }
-            NormalizedTF = true;
-        }
-
-/*        /// <summary>
-        /// Creates a feature vector based on a corpus's complete words (this instance) such that feature 
-        /// vector will be of length corpusBOW.Terms.Length
-        /// </summary>
-        /// <param name="inputTerms">The document top be compared</param>
-        /// <param name="type">Enum specifying which type of feature vector to return</param>
-        /// <returns>double array term vector</returns>
-        private double[] GetGeneralizedVector(BagOfWords documentBOW, VectorType type)
-        {
-            SortedList<string, WordStats> listTerms = new SortedList<string, WordStats>(Terms);
-            double[] result = new double[Terms.Count];
-            for (int i = 0; i < Terms.Count; ++i)
-            {
-                string term = Terms.ElementAt(i).Key;
-                if (documentBOW.Terms.ContainsKey(term))
-                    switch (type)
-                    {
-                        case VectorType.IDF:
-                            result[listTerms.IndexOfKey(term)] = Terms[term].IDF;
-                            break;
-                        case VectorType.EXISTS:
-                            result[listTerms.IndexOfKey(term)] = 1.0;
-                            break;
-                        case VectorType.NORMTF:
-                            result[listTerms.IndexOfKey(term)] = documentBOW.Terms[term].NormalizedTF;
-                            break;
-                        case VectorType.DOCNORMTF_IDF:
-                            result[listTerms.IndexOfKey(term)] = Terms[term].IDF * documentBOW.Terms[term].NormalizedTF;
-                            break;
-                    }
-            }
-            return result;
-        }*/
     }
 }

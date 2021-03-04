@@ -20,7 +20,8 @@ namespace Assignment1
     /// Its main responsibility is to create connection, delegate the creation of indexes, and to index
     /// objects to the database
     /// </summary>
-    /// <typeparam name="T"></typeparam>
+    /// <typeparam name="T">type used for retriving database information from class/es</typeparam>
+    /// <typeparam name="T">type used for Nest binding matches to a MovieIndex/subclass</typeparam>
     public class ElasticService<T, J> 
         where T: class, IIndexableDB
         where J: MovieIndex
@@ -60,11 +61,20 @@ namespace Assignment1
             }
         }
 
+        /// <summary>
+        /// Simple method that returns a string describing all databases in Elasticsearch
+        /// </summary>
+        /// <returns></returns>
         public string DescribeIndices()
         {
             return BasicWebRequest("_cat/indices?v");
         }
 
+        /// <summary>
+        /// Returns a MatchAll query of length num repsponses
+        /// </summary>
+        /// <param name="num">How many results to return</param>
+        /// <returns>Collection of type J results, a movie index or one of its sub classes</returns>
         public IReadOnlyCollection<J> GetFullMatches(int num)
         {
             var response = client.Search<J>(s => s
@@ -75,6 +85,13 @@ namespace Assignment1
             return response.Documents;
         }
 
+        /// <summary>
+        /// This method is for returning MovieIndexKeyWord results for a given query input.
+        /// This method has been generalized such that we can obtain MovieIndexKeywords fields
+        /// </summary>
+        /// <typeparam name="Q">MovieIndexKeyWords only</typeparam>
+        /// <param name="terms">The list of parsed query term strings</param>
+        /// <returns>List of MovieIndexKeyword results</returns>
         public List<Q> KeywordQuery<Q>(List<string> terms) where Q:
             MovieIndexKeyWords
         {
@@ -83,11 +100,13 @@ namespace Assignment1
             {
                 var response = client.Search<Q>(s => s
                     .Query(q => q
-                        .Term(t => t
+                        .Match(m => m
                             .Field(field => field.KeyWords)
-                            .Value(term)
+                            .Query(term)
                         )
-                    ));
+                    )
+                    .From(0)
+                    .Size(1000));
                 foreach(var result in response.Documents)
                 {
                     results.Add(result);
@@ -96,7 +115,12 @@ namespace Assignment1
             return results;
         }
 
-
+        /// <summary>
+        /// Very simple method for querying the database with your own query string, this was
+        /// mainly used in testing
+        /// </summary>
+        /// <param name="request">A query string for elasticsearch</param>
+        /// <returns>Raw http results</returns>
         private string BasicWebRequest(string request)
         {
             WebRequest myReq = WebRequest.Create(URI.ToString() + request);

@@ -13,10 +13,10 @@ namespace Assignment1
     class MovieIndexKeyWordStemmed: MovieIndexKeyWords
     {
         // json attribute name constants
-        private const string KEYWORDPOST_KEY = "KeywordsPostStem";
+        private const string KEYWORDS_PRESTEM_KEY = "KeywordsPreStemStem";
 
-        [PropertyName(KEYWORDPOST_KEY)]
-        public List<string> KeywordsPostStem { get; set; } = new List<string>();
+        [PropertyName(KEYWORDS_PRESTEM_KEY), Keyword]
+        public List<string> KeywordsPreStem { get; set; } = new List<string>();
 
         public MovieIndexKeyWordStemmed(MovieIndex other, ProcessingPipeline pipe) : base(other, pipe)
         {
@@ -26,7 +26,9 @@ namespace Assignment1
 
         public void AddKeywordStemmedFromPipe(ProcessingPipeline pipe)
         {
-            this.KeywordsPostStem.AddRange(pipe.Keywords);
+            this.KeywordsPreStem.AddRange(this.KeyWords);
+            this.KeyWords.Clear();
+            this.KeyWords.AddRange(pipe.Keywords);
         }
 
         // Json serialization methods
@@ -45,10 +47,10 @@ namespace Assignment1
         {
             base.SetWriter(index, writer, serializer);
             writer.Formatting = Formatting.Indented;
-            writer.WritePropertyName(KEYWORDPOST_KEY);
+            writer.WritePropertyName(KEYWORDS_PRESTEM_KEY);
             writer.Formatting = Formatting.None;
             writer.WriteStartArray();
-            foreach (var keywordStemmed in index.KeywordsPostStem)
+            foreach (var keywordStemmed in index.KeywordsPreStem)
                 serializer.Serialize(writer, keywordStemmed);
             writer.WriteEndArray();
             writer.Formatting = Formatting.Indented;
@@ -69,9 +71,9 @@ namespace Assignment1
             var jsonKeywordsPreList = jsonObj[KEYWORD_KEY].Value<JArray>();
             var kwordsPreList = jsonKeywordsPreList.ToObject<List<string>>();
             index.KeyWords.AddRange(kwordsPreList);
-            var jsonKeywordsPost = jsonObj[KEYWORDPOST_KEY].Value<JArray>();
+            var jsonKeywordsPost = jsonObj[KEYWORDS_PRESTEM_KEY].Value<JArray>();
             var keywordsPostList = jsonKeywordsPost.ToObject<List<string>>();
-            index.KeywordsPostStem.AddRange(keywordsPostList);
+            index.KeywordsPreStem.AddRange(keywordsPostList);
         }
 
         // simple serialization/deserialization methods for ease of access

@@ -45,6 +45,12 @@ namespace Assignment1
         private void MakeStopWordList(int index, List<KeyValuePair<string, WordStats>> rankedList)
         {
             _stopWords = (from KeyValuePair<string, WordStats> pair in rankedList.Take(index) select pair.Key).ToList();
+            string stopwords = "";
+            for (int i = 0; i < _stopWords.Count; i++)
+            {
+                stopwords += $"Stopword {i+=1} = {_stopWords[i]}\n";
+            }
+            gui.AddConsoleMessage("Stopwords Generated\n" + stopwords);
         }
 
         private void PrintStatsToGui(string message, int startIndex, int endIndex, int match)

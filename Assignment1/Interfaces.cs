@@ -20,13 +20,6 @@ namespace Assignment1
         public void CreateIndex(ElasticClient client);
     }
 
-    public interface IDocumentable<T, J> 
-        where T: class, IIndexableDB
-        where J: MovieIndex
-    {
-        public void UploadData(ElasticService<T, J> service);
-    }
-
     /// <summary>
     /// ICSVEntity exists such that classes who realise it can add the value of a given column
     /// to its own data fields

@@ -6,7 +6,9 @@
         xmlns:local="clr-namespace:Assignment1GUI"
         mc:Ignorable="d"
         Title="MainWindow" MinHeight="650" MinWidth="1150"
-        Background="AntiqueWhite">
+        Background="AntiqueWhite"
+        Closing="OnClose"
+        >
     <Grid>
         <Grid.ColumnDefinitions>
         </Grid.ColumnDefinitions>
