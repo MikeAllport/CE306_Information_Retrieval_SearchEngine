@@ -277,33 +277,24 @@ namespace Assignment1
             try
             {
                 // create pipes of query, 2 needed, one keyworded and stemmed one none keyworded
-                var keywordedQueryPipe = new ProcessingPipeline.Builder(searchString).
+                var queryPipe = new ProcessingPipeline.Builder(searchString).
                         SplitBulletPoints().
                         SplitSentences().
                         RemovePunctuation().
                         Normalize().
                         Tokenize().
                         Build();
-                keywordedQueryPipe.NGramNum = 3;
-                keywordedQueryPipe.MakeNGrams();
-                keywordedQueryPipe.AddTokensToKeywords();
-                keywordedQueryPipe.StemKeywords();
-
-                var rawProcessedQueryPipe = new ProcessingPipeline.Builder(searchString).
-                        SplitBulletPoints().
-                        SplitSentences().
-                        RemovePunctuation().
-                        Normalize().
-                        Tokenize().
-                        Build();
-                rawProcessedQueryPipe.Tokens.AddRange(keywordedQueryPipe.NGrams);
+                queryPipe.NGramNum = 3;
+                queryPipe.MakeNGrams();
+                queryPipe.AddTokensToKeywords();
+                queryPipe.GetStemmedKeywords();
 
                 // instantiates data services
                 var tokenizedService = new MovieIndexServiceProcessed<MovieIndexKeyWords>();
                 var elasticService = new ElasticService<MovieIndexService<MovieIndexKeyWords>, MovieIndexKeyWords>(tokenizedService);
 
                 //makes query
-                List<MovieIndexKeyWords> results = elasticService.KeywordQuery<MovieIndexKeyWords>(keywordedQueryPipe.Keywords);
+                List<MovieIndexKeyWords> results = elasticService.KeywordQuery<MovieIndexKeyWords>(queryPipe.Keywords);
                 MovieIndexMatches matchesObj = new MovieIndexMatches(results.Count, searchString);
 
                 // processes queries
@@ -317,13 +308,17 @@ namespace Assignment1
                         .Normalize()
                         .Tokenize()
                         .Build();
+                    matchPipe.NGramNum = 3;
+                    matchPipe.MakeNGrams();
+                    matchPipe.AddTokensToKeywords();
+                    matchPipe.GetStemmedKeywords();
 
-                    double queryDocSimilarity = engine.CosineSimilarity(rawProcessedQueryPipe.TermsAndStats, matchPipe.TermsAndStats);
+                    double queryDocSimilarity = engine.CosineSimilarity(queryPipe.TermsAndStats, matchPipe.TermsAndStats);
                     // processes match, checking if fields match if user selected a field in gui
                     MovieIndexQueryMatch processedMatch;
                     if (fieldType != FieldName.NONE)
                     {
-                        bool fieldMatches = FieldMatches(fieldType, match, rawProcessedQueryPipe.Tokens);
+                        bool fieldMatches = FieldMatches(fieldType, match, queryPipe.Tokens);
                         processedMatch = new MovieIndexQueryMatch(queryDocSimilarity, match, true, fieldMatches);
                     }
                     else

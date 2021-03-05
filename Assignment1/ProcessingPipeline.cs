@@ -236,9 +236,12 @@ namespace Assignment1
         /// found and all stem words indexes in the token list is tracked. Once a dictionary of word stems
         /// and indexes have been made, all tokens are replaced with their stems
         /// </summary>
-        public void StemKeywords()
+        public void GetStemmedKeywords()
         {
             _keywords = (from string keyword in _keywords select Stemmer.Stem(keyword)).ToList();
+            _tokens = new List<string>();
+            _tokens.AddRange(_keywords);
+            ResetTerms();
         }
 
         /// <summary>

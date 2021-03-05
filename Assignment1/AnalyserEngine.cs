@@ -234,10 +234,13 @@ namespace Assignment1
         /// </summary>
         public void GenerateKeywordStems()
         {
+            _corpusBOW = new BagOfWords();
             foreach (KeyValuePair<int, ProcessingPipeline> idPipePair in IndexIDDict)
             {
-                idPipePair.Value.StemKeywords();
+                idPipePair.Value.GetStemmedKeywords();
+                _corpusBOW.AddTerms(idPipePair.Value.Tokens);
             }
+            CalculateIDFs();
         }
 
         /// <summary>
