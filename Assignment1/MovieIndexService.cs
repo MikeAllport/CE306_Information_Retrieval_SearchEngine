@@ -81,6 +81,10 @@ namespace Assignment1
         }
     }
 
+    /// <summary>
+    /// MovieIndexServiceProcessed is used for creation of a seperate database, "movie-index-processed"
+    /// </summary>
+    /// <typeparam name="T">The type of MovieIndex base or sub to use</typeparam>
     [ElasticsearchType(RelationName = "processed")]
     public class MovieIndexServiceProcessed<T> : MovieIndexService<T>
     where T : MovieIndex

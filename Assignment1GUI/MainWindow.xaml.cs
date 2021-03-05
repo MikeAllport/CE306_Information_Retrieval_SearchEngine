@@ -141,6 +141,7 @@ namespace Assignment1GUI
                         ResetButtonVisibilities(new bool[] { true, false, false, false, true });
                     else
                         ResetButtonVisibilities(new bool[] { true, false, false, false, false });
+                    SetMouseNorm();
                 }
             }).Start();
         }

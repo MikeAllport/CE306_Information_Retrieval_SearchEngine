@@ -296,6 +296,7 @@ namespace Assignment1
                         Normalize().
                         Tokenize().
                         Build();
+                rawProcessedQueryPipe.Tokens.AddRange(keywordedQueryPipe.NGrams);
 
                 // instantiates data services
                 var tokenizedService = new MovieIndexServiceProcessed<MovieIndexKeyWords>();
