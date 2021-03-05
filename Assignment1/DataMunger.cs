@@ -20,6 +20,10 @@ namespace Assignment1
             this._filename = filename;
         }
 
+        /// <summary>
+        /// Instantiates CSVParser and adds documents to list
+        /// </summary>
+        /// <returns></returns>
         public List<MovieIndex> GetMovieIndexes()
         {
             List<MovieIndex> indexList;
@@ -29,7 +33,6 @@ namespace Assignment1
                 string line = reader.ReadToEnd();
                 CSVParser<MovieIndex> parser = new CSVParser<MovieIndex>(line);
                 indexList = parser.EntityList;
-                int x = 1;
             }
             return indexList;
         }

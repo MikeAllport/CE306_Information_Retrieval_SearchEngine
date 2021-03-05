@@ -79,7 +79,7 @@ namespace Assignment1
 
         /**
          * ParseFile's responsibility is the main running loop of the program, calling
-         * ParseValue on any new column and incrementing the index
+         * ParseValue on any new column and incrementing the index until EOF is reached
          * */
         public void ParseFile()
         {
@@ -126,8 +126,8 @@ namespace Assignment1
 
         /**
          * MakeValue's purpose is to extract a value from between the current pointers values
-         * and to inrement the column count, give the entity the value, and if the value being
-         * processed is the last value for the entity create a new instance
+         * and to increment the column count, give the entity the value, and if the value being
+         * processed is the last value for the entity create a new entity instance
          * */
         public void MakeValue(int index)
         {

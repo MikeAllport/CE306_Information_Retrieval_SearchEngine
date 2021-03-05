@@ -151,7 +151,7 @@ namespace Assignment1
                 string termForRemoval = _stringsInPipeline[i];
                 Regex pattern = new Regex(@"'");
                 termForRemoval = pattern.Replace(termForRemoval, "");
-                pattern = new Regex(@"[\p{P}\p{S}_]");
+                pattern = new Regex(@"[\p{P}\p{S}_\n]");
                 termForRemoval = pattern.Replace(termForRemoval, " ");
                 _stringsInPipeline[i] = termForRemoval;
             }
@@ -183,8 +183,7 @@ namespace Assignment1
 
         private void ResetTerms()
         {
-            TermsAndStats = new BagOfWords();
-            TermsAndStats.AddTerms(_tokens);
+            TermsAndStats = BagOfWords.WithWords(_tokens);
         }
 
         /// <summary>

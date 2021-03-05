@@ -8,12 +8,18 @@ using System.Text.RegularExpressions;
 
 namespace Assignment1
 {
+    /// <summary>
+    /// Stemmer is a static class who's purpose is to load given stemming dataset as
+    /// pre-stemmed / stemmed term pairs in a dictionary. Stem method then finds an input
+    /// word as key in the dictionary, and returns the stemmed equivelent if found
+    /// </summary>
     class Stemmer
     {
         private static readonly string DATA_PATH = Assignment1.Program.SOLUTION_DIR +
             "libs/StemmingData/diffs.txt";
         private static Dictionary<string, string> Stems = InitStems();
 
+        // instantiates the dataset in dictionary by parsing with regex
         public static Dictionary<string, string> InitStems()
         {
             Dictionary<string, string> result = new Dictionary<string, string>();
@@ -27,6 +33,11 @@ namespace Assignment1
             return result;
         }
 
+        /// <summary>
+        /// Produces the associated stemmed word of a given input word if exists
+        /// </summary>
+        /// <param name="inputword">Term to be evaluated</param>
+        /// <returns>Stemmed version if exists, inputword otherwise</returns>
         public static string Stem(string inputword)
         {
             if(Stems.ContainsKey(inputword))

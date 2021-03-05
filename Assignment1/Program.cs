@@ -11,18 +11,16 @@ namespace Assignment1
     public class Program
     {
         /// <summary>
-        /// Program contains the main logic for going through the assignment steps sequence. Most processing operations
+        /// Program contains the main logic for the assignment's step sequence. Most processing operations
         /// are done through the AnalyzerEngine class and ProcessingPipeline. All database operations are done through the ElasticService class,
         /// but this is generalized and interfaces with MovieIndexService class and sub class (at the bottom of the movieindexservice class).
-        /// The main class that processes CSV is CSVParser and DataMunger class, the parser interfaces with the MovieIndex class
-        /// to instantiate them.
         /// 
-        /// This has been a really fun assignment. Although I have no idea if this is how you want it orchestrated. I don't use
-        /// ElasticSearch in depth. It is mainly a data store. I directly implement Zipf for stop word removal, 
-        /// a custom BagOfWords, IDF feature vectors, CosineSimilarity for ranking matches. No external libraries have been
-        /// used for processing, all regex expressions. 
+        /// This has been a really fun assignment. Although I have no idea if this is how you want it orchestrated.
+        /// ElasticSearch is not used in depth. It is mainly a data store. Zips is mainly used for stop word removal, 
+        /// a custom BagOfWords representation created, IDF feature vectors, and CosineSimilarity for ranking matches. 
+        /// No external libraries have been used for processing in the final version, all regex expressions. 
         /// 
-        /// Have fun marking! 
+        /// Have fun marking! If you break it, please let me know where >.<
         /// </summary>
         public static readonly string SOLUTION_DIR = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..\\..\\..\\..\\"));
         public static readonly string DEFAULT_DATA_FILE = SOLUTION_DIR + "documents.csv";
@@ -58,12 +56,11 @@ namespace Assignment1
         ///     Processing performed on documents
         ///     MovieIndexService created, has methods needed for indexing
         ///     ElasticService created, creates and commincates with the database interfacing with MIService
-        ///     Top6 documents obtained following processing
-        ///     Output to GUI
+        ///     Processed documents attached to MovieIndexService, which uploads data via ElasticService
+        ///     Top6 documents obtained following processing are Output to GUI
         ///     
         /// The only difference being with searching, which does not perform any processing on the Corpus,
-        /// only the query.
-        /// 
+        /// only the query and matches.
         /// </summary>
         /// <param name="uri">The full absolute path to csv file, must be a MovieIndex csv as per assignment</param>
         public bool PerformFullIndexing(string uri, int numDocs)
@@ -75,14 +72,14 @@ namespace Assignment1
                 List<MovieIndex> movieIndexList = munger.GetMovieIndexes();
                 movieIndexList.Sort();
 
-                // creates data services
+                // creates MI service and attaches documents
                 var _miService = new MovieIndexService<MovieIndex>();
+                _miService.NumDocuments = numDocs;
+                _miService.AddDocuments(movieIndexList);
+
+                // creates DB and uploads documents
                 var _esService = new ElasticService<MovieIndexService<MovieIndex>, MovieIndex>(_miService);
                 _esService.InitDB();
-                _miService.NumDocuments = numDocs;
-
-                // uploads documents to database
-                _miService.AddDocuments(movieIndexList);
                 _miService.UploadData(_esService);
                 _esService.AwaitASync();
 
@@ -124,20 +121,22 @@ namespace Assignment1
         {
             try
             {
-                // creates database services
-                var tokenizedService = new MovieIndexServiceProcessed<MovieIndexTokenized>();
-                var elasticService = new ElasticService<MovieIndexService<MovieIndexTokenized>, MovieIndexTokenized>(tokenizedService);
-                elasticService.InitDB();
-
-                //processes documents and uploads to ElasticSearch
+                // processes documents
                 engine.GenerateTokenizedPipes();
-                var processedDocs = SortedIndexDictToList(CreateMovieIndexChildClasses(tokenizedService));
-                tokenizedService.UploadData(elasticService);
+
+                // creates MI service and attaches documents via CreateMIInstancesAndAttachToMIService
+                var miService = new MovieIndexServiceProcessed<MovieIndexTokenized>();
+                var processedDocs = SortedIndexDictToList(CreateMIInstancesAndAttachToMIService(miService));
+
+                // creates ES connection and uploads data
+                var elasticService = new ElasticService<MovieIndexService<MovieIndexTokenized>, MovieIndexTokenized>(miService);
+                elasticService.InitDB();
+                miService.UploadData(elasticService);
 
                 // outputs first 6 documents to gui
                 var top6docs = processedDocs.Take(6).ToList();
                 elasticService.AwaitASync();
-                string result = $"Created Tokenized Processed Index: {tokenizedService.GetIndexTitle()}\n> 6 results: \n";
+                string result = $"Created Tokenized Processed Index: {miService.GetIndexTitle()}\n> 6 results: \n";
                 foreach (var document in top6docs)
                 {
                     result += document.Serialize() + "\n";
@@ -172,19 +171,19 @@ namespace Assignment1
                 engine.CalculateIDFs();
                 engine.AddKeywordsToPipes();
 
-                // creates database services
-                var keywordedService = new MovieIndexServiceProcessed<MovieIndexKeyWords>();
-                var elasticService = new ElasticService<MovieIndexService<MovieIndexKeyWords>, MovieIndexKeyWords>(keywordedService);
+                // create MI service and attaches documents
+                var miService = new MovieIndexServiceProcessed<MovieIndexKeyWords>();
+                var indexedDocs = SortedIndexDictToList(CreateMIInstancesAndAttachToMIService(miService));
+                
+                // creates database and uploads documents
+                var elasticService = new ElasticService<MovieIndexService<MovieIndexKeyWords>, MovieIndexKeyWords>(miService);
                 elasticService.InitDB();
-
-                // indexes documents and uploads to ElasticSearch
-                var indexedDocs = SortedIndexDictToList(CreateMovieIndexChildClasses(keywordedService));
-                keywordedService.UploadData(elasticService);
+                miService.UploadData(elasticService);
 
                 // outputs first 6 documents to gui
                 var top6docs = indexedDocs.Take(6).ToList();
                 elasticService.AwaitASync();
-                string result = $"Created Keyworded Processed Index: {keywordedService.GetIndexTitle()}\n> 6 results: \n";
+                string result = $"Created Keyworded Processed Index: {miService.GetIndexTitle()}\n> 6 results: \n";
                 foreach (var document in top6docs)
                 {
                     result += document.Serialize() + "\n";
@@ -217,7 +216,7 @@ namespace Assignment1
                 elasticService.InitDB();
 
                 // creates indexes with original non stemmed keywords
-                SortedDictionary<int, MovieIndexKeyWordStemmed> results = CreateMovieIndexChildClasses(tokenizedService);
+                SortedDictionary<int, MovieIndexKeyWordStemmed> results = CreateMIInstancesAndAttachToMIService(tokenizedService);
 
                 // processed documents with stems
                 engine.GenerateKeywordStems();
@@ -416,7 +415,7 @@ namespace Assignment1
         /// <typeparam name="T">The type of MovieIndex child class to create</typeparam>
         /// <param name="miservice">The movie index service containing all documents of type T</param>
         /// <returns>A dictionary with ID keys and type T movie index derrived classes (the documents)</returns>
-        public SortedDictionary<int, T> CreateMovieIndexChildClasses<T>(MovieIndexService<T> miservice) where T :
+        public SortedDictionary<int, T> CreateMIInstancesAndAttachToMIService<T>(MovieIndexService<T> miservice) where T :
             MovieIndex
         {
             SortedDictionary<int, T> results = new SortedDictionary<int, T>();

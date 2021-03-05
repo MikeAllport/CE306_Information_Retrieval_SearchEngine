@@ -12,10 +12,6 @@ namespace Assignment1
     /// </summary>
     public interface IIndexableDB
     {
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <returns></returns>
         public string GetIndexTitle();
         public void CreateIndex(ElasticClient client);
     }

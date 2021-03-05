@@ -18,7 +18,7 @@ using System.Windows.Controls.DataVisualization.Charting;
 namespace SimpleWPFChart
 {
     /// <summary>
-    /// Interaction logic for MainWindow.xaml
+    /// This is a brief window class which enables drawing of charts
     /// </summary>
     public partial class MainWindow : Window
     {
@@ -28,6 +28,10 @@ namespace SimpleWPFChart
             InitializeComponent();
         }
 
+        /// <summary>
+        /// Creates the chart in the window from a given dataset of x/y/title list inputs
+        /// </summary>
+        /// <param name="inputs">The dataset to be drawn to a graph></param>
         public void SetChart(Tuple<float[], float[], string> inputs)
         {
             int datasetIndex = 0;

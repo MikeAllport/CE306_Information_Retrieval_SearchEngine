@@ -2,6 +2,10 @@
 using System.Collections.Generic;
 namespace IGUIAdapter
 {
+    /// <summary>
+    /// Adapter is a class allowing the Program to interface with the GUI to add console messages
+    /// and export chart data allowing for non infinite recursive inclusions with 'using' keyword
+    /// </summary>
     public interface Adapter
     {
         public void AddConsoleMessage(

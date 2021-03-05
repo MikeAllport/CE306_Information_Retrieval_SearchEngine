@@ -4,6 +4,9 @@ using System.Text;
 
 namespace IGUIAdapter
 {
+    /// <summary>
+    /// Simple color data class used for font coloring in WPF
+    /// </summary>
     public struct GUIColor
     {
         public static readonly GUIColor ERROR_COLOR = new GUIColor(150, 50, 50);

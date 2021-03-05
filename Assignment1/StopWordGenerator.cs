@@ -29,6 +29,11 @@ namespace Assignment1
             this.CorpusBOW = corpusBOW;
         }
 
+        /// <summary>
+        /// Creates a dataset in Tuple form which is printable by the SimpleWPFChart project
+        /// for normal zipf frequency/ranked values
+        /// </summary>
+        /// <returns>Tuple containing y, x axis values and title of chart</returns>
         public Tuple<float[], float[], string> GetZipfsNormStats()
         {
             var CorpusWCList = GetZipfsRankedList();
@@ -42,7 +47,12 @@ namespace Assignment1
             return new Tuple<float[], float[], string>(xInt, yInt, "Zipfs Normal");
         }
 
-        private void MakeStopWordList(int index, List<KeyValuePair<string, WordStats>> rankedList)
+        /// <summary>
+        /// iterates through a collextion of stop words and outputs them to the gui
+        /// </summary>
+        /// <param name="index">Where in the total collection of zipf ranked words selection has been made</param>
+        /// <param name="rankedList">The total zipf ranked collection of all words</param>
+        private void OutputStopwordsSelected(int index, List<KeyValuePair<string, WordStats>> rankedList)
         {
             _stopWords = (from KeyValuePair<string, WordStats> pair in rankedList.Take(index) select pair.Key).ToList();
             string stopwords = "";
@@ -53,6 +63,13 @@ namespace Assignment1
             gui.AddConsoleMessage("Stopwords Generated\n" + stopwords);
         }
 
+        /// <summary>
+        /// Outputs a smallword preview of a methods selected stop words
+        /// </summary>
+        /// <param name="message">The type of method used for selection</param>
+        /// <param name="startIndex">The first word to appear from the selection</param>
+        /// <param name="endIndex">The last word to appear in the selection</param>
+        /// <param name="match">The index of the selected word</param>
         private void PrintStatsToGui(string message, int startIndex, int endIndex, int match)
         {
             var CorpusWCList = GetZipfsRankedList();
@@ -71,6 +88,11 @@ namespace Assignment1
             gui.AddConsoleMessage(message);
         }
 
+        /// <summary>
+        /// Main logic for generating the zipf log mid point, and returns data that can be output
+        /// as a graph in SimpleWPFChart project
+        /// </summary>
+        /// <returns>Data to be output to graph with x/y axis values and title, and used for selection</returns>
         public Tuple<float[], float[], string> SelectStopWordsLogMidPoint()
         {
             var CorpusWCList = GetZipfsRankedList();
@@ -86,10 +108,15 @@ namespace Assignment1
                 "Selection Log Mid Point"
                 );
             PrintStatsToGui("Zipf log mid point selection", startIndexPrint, rank + 10, rank);
-            MakeStopWordList(rank, CorpusWCList);
+            OutputStopwordsSelected(rank, CorpusWCList);
             return result;
         }
 
+        /// <summary>
+        /// Main logic for generating the zipf log stats graph, and returns data that can be output
+        /// as a graph in SimpleWPFChart project
+        /// </summary>
+        /// <returns>Data to be output to graph with x/y axis values and title, and used for selection</returns>
         public Tuple<float[], float[], string> GetZipfsLogStats()
         {
             var CorpusWCList = GetZipfsRankedList();
@@ -103,6 +130,11 @@ namespace Assignment1
             return new Tuple<float[], float[], string>(x, y, "Xipfs Natural Log");
         }
 
+        /// <summary>
+        /// Main logic for generating the mean and standard deviation, and returns data that can be output
+        /// as a graph in SimpleWPFChart project
+        /// </summary>
+        /// <returns>Data to be output to graph with x/y axis values and title, and used for selection</returns>
         public Tuple<float[], float[], string> SelectStopWordsStandardDev()
         {
             var CorpusWCList = GetZipfsRankedList();
@@ -131,17 +163,15 @@ namespace Assignment1
                 );
             var startIndex = Math.Max(meanIndex - 10, 0);
             PrintStatsToGui("Selection Standard Deviation", startIndex, meanIndex + 10, meanIndex);
-            MakeStopWordList(meanIndex, CorpusWCList);
+            OutputStopwordsSelected(meanIndex, CorpusWCList);
             return result;
         }
 
-        public void SelectStopWordsN(int n)
-        {
-            var CorpusWCList = GetZipfsRankedList();
-            PrintStatsToGui("Selection top " + n + " words", Math.Max(n - 10, 0), n + 10, n);
-            MakeStopWordList(n, CorpusWCList);
-        }
-
+        /// <summary>
+        /// Main logic for generating the IQ range and median selection, and returns data that can be output
+        /// as a graph in SimpleWPFChart project
+        /// </summary>
+        /// <returns>Data to be output to graph with x/y axis values and title, and used for selection</returns>
         public Tuple<float[], float[], string> SelectStopWordsMedianIQRange()
         {
             var CorpusWCList = GetZipfsRankedList();
@@ -169,10 +199,14 @@ namespace Assignment1
             PrintStatsToGui("Selection IQ Range Median", startIndex, (int)median + 10, (int)median);
             startIndex = Math.Max((int)q3 - 10, 0);
             PrintStatsToGui("Selection IQ Range Q3", startIndex, (int)q3 + 10, (int)q3);
-            MakeStopWordList((int)median, CorpusWCList);
+            OutputStopwordsSelected((int)median, CorpusWCList);
             return result;
         }
 
+        /// <summary>
+        /// Generates the frequency ranked zipf term list from the Corpus'es BagOfWords
+        /// </summary>
+        /// <returns>Zipf ranked word list with element 0 being highest frequency word</returns>
         private List<KeyValuePair<string, WordStats>> GetZipfsRankedList()
         {
             var CorpusWCList = CorpusBOW.Terms.ToList();
