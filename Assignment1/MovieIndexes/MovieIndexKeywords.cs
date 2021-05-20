@@ -18,6 +18,11 @@ namespace Assignment1
         [PropertyName(KEYWORD_KEY), Keyword]
         public List<string> KeyWords { get; set; } = new List<string>();
 
+        public MovieIndexKeyWords(MovieIndexKeyWords other): base(other)
+        {
+            this.KeyWords = other.KeyWords;
+        }
+
         public MovieIndexKeyWords(MovieIndex other, ProcessingPipeline pipe) : base(other)
         {
             this.KeyWords.AddRange(pipe.Keywords);

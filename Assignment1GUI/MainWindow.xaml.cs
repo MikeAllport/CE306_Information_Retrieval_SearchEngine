@@ -82,6 +82,36 @@ namespace Assignment1GUI
             }
         }
 
+        private void OnDoAll(object sender, RoutedEventArgs e)
+        {
+            buttonVisibilities[0] = false;
+            ResetButtonVisibilities(buttonVisibilities);
+            OpenFileDialog openFileDialog = new OpenFileDialog();
+            if (openFileDialog.ShowDialog() == true)
+            {
+                SetMouseWait();
+                AddConsoleMessage("Indexing full text documents, please wait a moment...", GUIColor.ERROR_COLOR);
+                new Thread(() => {
+                    bool succ = program.PerformFullIndexing(openFileDialog.FileName) &&
+                    program.PerformTokenization() &&
+                    program.PerformKeywordSelection() &&
+                    program.PerformStemming();
+                    if (running)
+                    {
+                        if (succ)
+                        {
+                            ResetButtonVisibilities(new bool[] { true, false, false, false, true });
+                        }
+                        else
+                        {
+                            ResetButtonVisibilities(new bool[] { true, false, false, false, false });
+                        }
+                        SetMouseNorm();
+                    }
+                }).Start();
+            }
+        }
+
 
         private void OnComp2Click(object sender, RoutedEventArgs e)
         {
@@ -137,10 +167,9 @@ namespace Assignment1GUI
                 bool succ = program.PerformStemming();
                 if (running)
                 {
-                    if (succ)
-                        ResetButtonVisibilities(new bool[] { true, false, false, false, true });
-                    else
-                        ResetButtonVisibilities(new bool[] { true, false, false, false, false });
+                    var buttons = (succ) ? new bool[] { true, false, false, false, true } :
+                    new bool[] { true, false, false, false, false };
+                    ResetButtonVisibilities(buttons);
                     SetMouseNorm();
                 }
             }).Start();

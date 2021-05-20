@@ -12,7 +12,7 @@ namespace Assignment1
 {
     [JsonConverter(typeof(MovieIndexQueryMatch))]
     public class MovieIndexQueryMatch : 
-        MovieIndex,
+        MovieIndexKeyWords,
         IComparable<MovieIndexQueryMatch>,
         IEqualityComparer<MovieIndexQueryMatch>
     {
@@ -32,7 +32,7 @@ namespace Assignment1
         [PropertyName(MATCHNUM_KEY)]
         public int ID { get; set; } = 0;
 
-        public MovieIndexQueryMatch(double similarity, MovieIndex other, bool matchField = false, bool fieldMatched = true) : base(other) {
+        public MovieIndexQueryMatch(double similarity, MovieIndexKeyWords other, bool matchField = false, bool fieldMatched = true) : base(other) {
             this.SimilarityScore = similarity;
             this.FieldMatched = fieldMatched;
             this.MatchFieldQuery = matchField;

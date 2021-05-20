@@ -58,7 +58,7 @@ namespace Assignment1
             string stopwords = "";
             for (int i = 0; i < _stopWords.Count; i++)
             {
-                stopwords += $"Stopword {i+=1} = {_stopWords[i]}\n";
+                stopwords += $"Stopword {i+1} = {_stopWords[i]}\n";
             }
             gui.AddConsoleMessage("Stopwords Generated\n" + stopwords);
         }

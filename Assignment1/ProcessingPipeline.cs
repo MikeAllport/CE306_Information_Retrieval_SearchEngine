@@ -196,6 +196,18 @@ namespace Assignment1
             ResetTerms();
         }
 
+        public void RemoveTokensBOW(BagOfWords corpus)
+        {
+            List<string> newtokens = new List<string>();
+            foreach(var token in _tokens)
+            {
+                if (corpus.Terms.ContainsKey(token))
+                    newtokens.Add(token);
+            }
+            _tokens = newtokens;
+            ResetTerms();
+        }
+
         /// <summary>
         /// Creates NGrams of word length 2 - _ngramNum 
         /// </summary>

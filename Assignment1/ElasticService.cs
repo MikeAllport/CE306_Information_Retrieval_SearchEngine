@@ -106,7 +106,7 @@ namespace Assignment1
                         )
                     )
                     .From(0)
-                    .Size(1000));
+                    .Size(Program._numDocuments));
                 foreach(var result in response.Documents)
                 {
                     results.Add(result);

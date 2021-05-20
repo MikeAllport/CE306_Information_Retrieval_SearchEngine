@@ -24,7 +24,7 @@ namespace Assignment1
         /// </summary>
         public static readonly string SOLUTION_DIR = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..\\..\\..\\..\\"));
         public static readonly string DEFAULT_DATA_FILE = SOLUTION_DIR + "documents.csv";
-        private const int _numDocuments = 1000;
+        public const int _numDocuments = 10000;
         private AnalyserEngine engine;
         public AnalyserEngine AnalyserEngine { get { return engine; } }
         private IGUIAdapter.Adapter gui;
@@ -99,9 +99,15 @@ namespace Assignment1
             }
             catch (Exception e)
             {
-                gui?.AddConsoleMessage(e.Message, IGUIAdapter.GUIColor.ERROR_COLOR);
+                OutputMessageGUI(e);
                 return false;
             }
+        }
+
+        private void OutputMessageGUI(Exception e)
+        {
+            gui?.AddConsoleMessage(e.Message, IGUIAdapter.GUIColor.ERROR_COLOR);
+            gui?.AddConsoleMessage(e.StackTrace, IGUIAdapter.GUIColor.ERROR_COLOR);
         }
 
         /// <summary>
@@ -146,7 +152,7 @@ namespace Assignment1
             }
             catch (Exception e)
             {
-                gui?.AddConsoleMessage(e.Message, IGUIAdapter.GUIColor.ERROR_COLOR);
+                OutputMessageGUI(e);
                 return false;
             }
         }
@@ -193,7 +199,7 @@ namespace Assignment1
             }
             catch (Exception e)
             {
-                gui?.AddConsoleMessage(e.Message, IGUIAdapter.GUIColor.ERROR_COLOR);
+                OutputMessageGUI(e);
                 return false;
             }
 
@@ -242,7 +248,7 @@ namespace Assignment1
             }
             catch (Exception e)
             {
-                gui?.AddConsoleMessage(e.Message, IGUIAdapter.GUIColor.ERROR_COLOR);
+                OutputMessageGUI(e);
                 return false;
             }
         }
@@ -275,7 +281,7 @@ namespace Assignment1
         {
             try
             {
-                // create pipes of query, 2 needed, one keyworded and stemmed one none keyworded
+                // create pipes of query
                 var queryPipe = new ProcessingPipeline.Builder(searchString).
                         SplitBulletPoints().
                         SplitSentences().
@@ -295,37 +301,45 @@ namespace Assignment1
                 //makes query
                 List<MovieIndexKeyWords> results = elasticService.KeywordQuery<MovieIndexKeyWords>(queryPipe.Keywords);
                 MovieIndexMatches matchesObj = new MovieIndexMatches(results.Count, searchString);
+                object matchesLock = new object();
 
                 // processes queries
                 foreach (MovieIndexKeyWords match in results)
                 {
-                    // finds cosing similarity between query and match document
-                    var matchPipe = new ProcessingPipeline.Builder(match.GetFullText())
-                        .SplitBulletPoints()
-                        .SplitSentences()
-                        .RemovePunctuation()
-                        .Normalize()
-                        .Tokenize()
-                        .Build();
-                    matchPipe.NGramNum = 3;
-                    matchPipe.MakeNGrams();
-                    matchPipe.AddTokensToKeywords();
-                    matchPipe.GetStemmedKeywords();
+                    ThreadHelper.AddThread(() =>
+                    {
+                        // finds cosing similarity between query and match document
+                        var matchPipe = new ProcessingPipeline.Builder(match.GetFullText())
+                            .SplitBulletPoints()
+                            .SplitSentences()
+                            .RemovePunctuation()
+                            .Normalize()
+                            .Tokenize()
+                            .Build();
+                        matchPipe.NGramNum = 3;
+                        matchPipe.MakeNGrams();
+                        matchPipe.AddTokensToKeywords();
+                        matchPipe.GetStemmedKeywords();
 
-                    double queryDocSimilarity = engine.CosineSimilarity(queryPipe.TermsAndStats, matchPipe.TermsAndStats);
-                    // processes match, checking if fields match if user selected a field in gui
-                    MovieIndexQueryMatch processedMatch;
-                    if (fieldType != FieldName.NONE)
-                    {
-                        bool fieldMatches = FieldMatches(fieldType, match, queryPipe.Tokens);
-                        processedMatch = new MovieIndexQueryMatch(queryDocSimilarity, match, true, fieldMatches);
-                    }
-                    else
-                    {
-                        processedMatch = new MovieIndexQueryMatch(queryDocSimilarity, match);
-                    }
-                    matchesObj.Matches.Add(processedMatch);
+                        double queryDocSimilarity = engine.CosineSimilarity(queryPipe.TermsAndStats, matchPipe.TermsAndStats);
+                        // processes match, checking if fields match if user selected a field in gui
+                        MovieIndexQueryMatch processedMatch;
+                        if (fieldType != FieldName.NONE)
+                        {
+                            bool fieldMatches = FieldMatches(fieldType, match, queryPipe.Tokens);
+                            processedMatch = new MovieIndexQueryMatch(queryDocSimilarity, match, true, fieldMatches);
+                        }
+                        else
+                        {
+                            processedMatch = new MovieIndexQueryMatch(queryDocSimilarity, match);
+                        }
+                        lock (matchesLock)
+                        {
+                            matchesObj.Matches.Add(processedMatch);
+                        }
+                    });
                 }
+                ThreadHelper.WaitThreads();
 
                 // assign match indexes and set count
                 matchesObj.ResultsFound = matchesObj.Matches.Count;
@@ -339,7 +353,7 @@ namespace Assignment1
             }
             catch (Exception e)
             {
-                gui?.AddConsoleMessage(e.Message, IGUIAdapter.GUIColor.ERROR_COLOR);
+                OutputMessageGUI(e);
                 return null;
             }
         }
@@ -389,7 +403,9 @@ namespace Assignment1
                     .Normalize()
                     .Tokenize()
                     .Build();
-            if (fieldPipe.Tokens.Intersect(queryRaw).Count() > 0)
+            fieldPipe.AddTokensToKeywords();
+            fieldPipe.GetStemmedKeywords();
+            if (fieldPipe.Keywords.Intersect(queryRaw).Count() > 0)
                 return true;
             return false;
         }

@@ -4,6 +4,7 @@ using System.Text;
 using System.Linq;
 using System.Threading;
 using static Assignment1.StopWordDetectionType;
+using System.Threading;
 using Utils;
 using System.Collections;
 
@@ -51,7 +52,8 @@ namespace Assignment1
         /// </summary>
         public AnalyserEngineSettings settings;
         private IGUIAdapter.Adapter gui;
-        public Dictionary<int, ProcessingPipeline> IndexIDDict { get; } = new Dictionary<int, ProcessingPipeline>();
+        private Dictionary<int, ProcessingPipeline> _indexIDDict;
+        public Dictionary<int, ProcessingPipeline> IndexIDDict { get { return _indexIDDict; } }
         public Dictionary<int, MovieIndex> UnProcessedIndexes { get; } = new Dictionary<int, MovieIndex>();
 
         private BagOfWords _corpusBOW = new BagOfWords();
@@ -76,18 +78,29 @@ namespace Assignment1
         /// </summary>
         public void GenerateTokenizedPipes()
         {
+            List<Thread> threads = new List<Thread>();
+            _indexIDDict = new Dictionary<int, ProcessingPipeline>(UnProcessedIndexes.Count);
+            object dictLock = new object();
             foreach (var entry in UnProcessedIndexes)
             {
-                var pipeline = new ProcessingPipeline.Builder(entry.Value.GetFullText()).
-                    SplitBulletPoints().
-                    SplitSentences().
-                    RemovePunctuation().
-                    Normalize().
-                    Tokenize().
-                    Build();
-                IndexIDDict[entry.Key] = pipeline;
-                CorpusBOW.AddTerms(pipeline.Tokens);
+                ThreadHelper.AddThread(() =>
+                {
+                    var pipeline = new ProcessingPipeline.Builder(entry.Value.GetFullText()).
+                        SplitBulletPoints().
+                        SplitSentences().
+                        RemovePunctuation().
+                        Normalize().
+                        Tokenize().
+                        Build();
+                    lock (dictLock)
+                    {
+                        IndexIDDict[entry.Key] = pipeline;
+                    }
+                });
             }
+            ThreadHelper.WaitThreads();
+            foreach(var pip in IndexIDDict)
+                CorpusBOW.AddTerms(pip.Value.Tokens);
             _stopWordGenerator = new StopWordGenerator(gui, CorpusBOW);
         }
 
@@ -98,13 +111,14 @@ namespace Assignment1
         /// </summary>
         public void RemoveStopWords()
         {
-            var stopWords = GenerateStopWords();
+            GenerateStopWords();
             foreach (var pipe in IndexIDDict)
             {
-                pipe.Value.RemoveTokens(stopWords);
+                ThreadHelper.AddThread(() => pipe.Value.RemoveTokens(this.StopWordGenerator.StopWords));
             }
-            CorpusBOW.RemoveTerms(stopWords);
-            StopWords = stopWords;
+            ThreadHelper.WaitThreads();
+            CorpusBOW.RemoveTerms(this.StopWordGenerator.StopWords);
+            StopWords = this.StopWordGenerator.StopWords;
         }
 
         /// <summary>
@@ -114,9 +128,8 @@ namespace Assignment1
         /// The main class to generate the stopwords is StopWordGenerator
         /// </summary>
         /// <returns>List of the stop words generated</returns>
-        private List<string> GenerateStopWords()
+        private void GenerateStopWords()
         {
-            List<string> stopWords;
             switch (settings.StopType)
             {
                 case MEAN:
@@ -128,12 +141,7 @@ namespace Assignment1
                 case INTER_QUARTILE:
                     this.StopWordGenerator.SelectStopWordsMedianIQRange();
                     break;
-                case TOP_N:
-                    this.StopWordGenerator.SelectStopWordsN(Math.Max(settings.StopWordN, 0));
-                    break;
             }
-            stopWords = this.StopWordGenerator.StopWords;
-            return stopWords;
         }
 
 
@@ -148,8 +156,9 @@ namespace Assignment1
             CorpusBOW.RemoveTerms(infrequentTerms);
             foreach (var pipeID in IndexIDDict)
             {
-                pipeID.Value.RemoveTokens(infrequentTerms);
+                ThreadHelper.AddThread(() => pipeID.Value.RemoveTokensBOW(_corpusBOW));
             }
+            ThreadHelper.WaitThreads();
         }
 
         /// <summary>
@@ -168,23 +177,37 @@ namespace Assignment1
                 Where(termStats => termStats.Value.TermFreq < 2).
                 Select(termStats => termStats.Key).
                 ToList();
+            HashSet<string> terms = new HashSet<string>();
+            Dictionary<int, ProcessingPipeline> tempImportantPipes = 
+                new Dictionary<int, ProcessingPipeline>(UnProcessedIndexes.Count);
+            object dictLock = new object();
             // removes any words from infrequent terms that appear in important fields such as cast/title
             // in any pipes
             foreach (var pipeIdPair in IndexIDDict)
             {
-                string importantTerms = "";
-                importantTerms += UnProcessedIndexes[pipeIdPair.Key].Director + " ";
-                importantTerms += UnProcessedIndexes[pipeIdPair.Key].Genre  + " ";
-                importantTerms += UnProcessedIndexes[pipeIdPair.Key].Origin + " ";
-                importantTerms += UnProcessedIndexes[pipeIdPair.Key].Title  + " ";
-                importantTerms += UnProcessedIndexes[pipeIdPair.Key].Cast   + " ";
-                var newpipe = new ProcessingPipeline.Builder(importantTerms).
-                    RemovePunctuation().
-                    Normalize().
-                    Tokenize().
-                    Build();
-                infrequentTerms = infrequentTerms.Except(newpipe.Tokens).ToList();
+                ThreadHelper.AddThread(() =>
+                {
+                    string importantTerms = "";
+                    importantTerms += UnProcessedIndexes[pipeIdPair.Key].Director + " ";
+                    importantTerms += UnProcessedIndexes[pipeIdPair.Key].Genre + " ";
+                    importantTerms += UnProcessedIndexes[pipeIdPair.Key].Origin + " ";
+                    importantTerms += UnProcessedIndexes[pipeIdPair.Key].Title + " ";
+                    importantTerms += UnProcessedIndexes[pipeIdPair.Key].Cast + " ";
+                    var newpipe = new ProcessingPipeline.Builder(importantTerms).
+                        RemovePunctuation().
+                        Normalize().
+                        Tokenize().
+                        Build();
+                    lock (dictLock)
+                    {
+                        tempImportantPipes[pipeIdPair.Key] = newpipe;
+                    }
+                });
             }
+            ThreadHelper.WaitThreads();
+            foreach (var pipe in tempImportantPipes)
+                terms.UnionWith(pipe.Value.Tokens);
+            infrequentTerms = infrequentTerms.Except(terms).ToList();
             return infrequentTerms;
         }
 
@@ -197,8 +220,15 @@ namespace Assignment1
             _corpusBOW = new BagOfWords();
             foreach (KeyValuePair<int, ProcessingPipeline> idPipePair in IndexIDDict)
             {
-                idPipePair.Value.NGramNum = settings.NGramNum;
-                idPipePair.Value.MakeNGrams();
+                ThreadHelper.AddThread(() =>
+                {
+                    idPipePair.Value.NGramNum = settings.NGramNum;
+                    idPipePair.Value.MakeNGrams();
+                });
+            }
+            ThreadHelper.WaitThreads();
+            foreach (KeyValuePair<int, ProcessingPipeline> idPipePair in IndexIDDict)
+            {
                 CorpusBOW.AddTerms(idPipePair.Value.Tokens);
             }
         }
@@ -225,8 +255,9 @@ namespace Assignment1
         {
             foreach(KeyValuePair<int, ProcessingPipeline> idPipePair in IndexIDDict)
             {
-                idPipePair.Value.AddTokensToKeywords();
+                ThreadHelper.AddThread(() => idPipePair.Value.AddTokensToKeywords());
             }
+            ThreadHelper.WaitThreads();
         }
 
         /// <summary>
@@ -237,7 +268,11 @@ namespace Assignment1
             _corpusBOW = new BagOfWords();
             foreach (KeyValuePair<int, ProcessingPipeline> idPipePair in IndexIDDict)
             {
-                idPipePair.Value.GetStemmedKeywords();
+                ThreadHelper.AddThread(() => idPipePair.Value.GetStemmedKeywords());
+            }
+            ThreadHelper.WaitThreads();
+            foreach (KeyValuePair<int, ProcessingPipeline> idPipePair in IndexIDDict)
+            {
                 _corpusBOW.AddTerms(idPipePair.Value.Tokens);
             }
             CalculateIDFs();
